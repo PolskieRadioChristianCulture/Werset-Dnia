@@ -1,0 +1,133 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile in LUMINA portal",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique Firebase Auth User UID",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name of the user",
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user",
+          "maxLength": 150
+        },
+        "avatarUrl": {
+          "type": "string",
+          "description": "Profile picture URL",
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Account creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Profile last updated timestamp"
+        }
+      },
+      "required": ["id", "name", "email"]
+    },
+    "SavedVerse": {
+      "title": "SavedVerse",
+      "description": "Bible verse saved to user favorites",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Verse identifier",
+          "maxLength": 128
+        },
+        "verseId": {
+          "type": "string",
+          "description": "Reference ID of the Bible verse",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Title or headline of the verse",
+          "maxLength": 200
+        },
+        "passageReference": {
+          "type": "string",
+          "description": "Bible passage reference (e.g., J 3, 16)",
+          "maxLength": 100
+        },
+        "category": {
+          "type": "string",
+          "description": "Category or topic of the verse",
+          "maxLength": 50
+        },
+        "savedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the verse was added to favorites"
+        }
+      },
+      "required": ["id", "verseId", "title", "passageReference"]
+    },
+    "CustomTheme": {
+      "title": "CustomTheme",
+      "description": "Custom uploaded background image theme",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Theme identifier",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "description": "User assigned name for the background",
+          "maxLength": 100
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL or compressed image data",
+          "maxLength": 1000000
+        },
+        "thumbnailUrl": {
+          "type": "string",
+          "description": "Thumbnail representation",
+          "maxLength": 1000000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Upload timestamp"
+        }
+      },
+      "required": ["id", "name", "imageUrl"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "User profile document indexed by Auth UID"
+    },
+    "/users/{userId}/saved_verses/{verseId}": {
+      "schema": {
+        "$ref": "#/entities/SavedVerse"
+      },
+      "description": "User saved Bible verses"
+    },
+    "/users/{userId}/custom_themes/{themeId}": {
+      "schema": {
+        "$ref": "#/entities/CustomTheme"
+      },
+      "description": "User uploaded custom background themes"
+    }
+  }
+}

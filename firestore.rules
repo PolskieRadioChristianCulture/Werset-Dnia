@@ -1,0 +1,76 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // User Profile Document
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Users cannot list all accounts
+
+      allow create: if isOwner(userId)
+        && isValidId(userId)
+        && incoming().id == userId
+        && incoming().name is string
+        && incoming().name.size() > 0
+        && incoming().name.size() <= 100
+        && incoming().email is string
+        && incoming().email.size() <= 150;
+
+      allow update: if isOwner(userId)
+        && incoming().id == existing().id
+        && incoming().name is string
+        && incoming().name.size() <= 100;
+
+      allow delete: if isOwner(userId);
+
+      // Subcollection: Saved Verses
+      match /saved_verses/{verseId} {
+        allow get, list: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && isValidId(verseId)
+          && incoming().id == verseId
+          && incoming().verseId is string
+          && incoming().verseId.size() <= 128
+          && incoming().title is string
+          && incoming().title.size() <= 200;
+        allow delete: if isOwner(userId) && isValidId(verseId);
+      }
+
+      // Subcollection: Custom Background Themes
+      match /custom_themes/{themeId} {
+        allow get, list: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && isValidId(themeId)
+          && incoming().id == themeId
+          && incoming().name is string
+          && incoming().name.size() <= 100;
+        allow delete: if isOwner(userId) && isValidId(themeId);
+      }
+    }
+  }
+}
