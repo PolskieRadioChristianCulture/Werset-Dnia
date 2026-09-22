@@ -1,0 +1,6 @@
+{
+  "name": "Mój Werset Dnia - Christian Culture",
+  "description": "Minimalistyczna wyszukiwarka Słowa Bożego i generator pięknych kart z wersetami dla ekosystemu Christian Culture oraz portalu LUMINA.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
