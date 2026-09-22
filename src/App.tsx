@@ -11,6 +11,7 @@ import { UploadBackgroundModal } from './components/UploadBackgroundModal';
 import { SavedVersesModal } from './components/SavedVersesModal';
 import { ShareModal } from './components/ShareModal';
 import { NotificationModal } from './components/NotificationModal';
+import { ExitIntentMissionModal } from './components/ExitIntentMissionModal';
 import { LoadingAnimation } from './components/LoadingAnimation';
 import { BIBLE_VERSES, getRandomVerse, getVerseBySlug, getVerseById } from './data/verses';
 import { BACKGROUNDS, DEFAULT_HOME_BACKGROUND, getBackgroundById, getDefaultBackgroundForCategory } from './data/backgrounds';
@@ -72,6 +73,7 @@ export default function App() {
   const [isSavedModalOpen, setIsSavedModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [isMissionModalOpen, setIsMissionModalOpen] = useState(false);
   const [isSeoAuditOpen, setIsSeoAuditOpen] = useState(false);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(getNotificationSettings());
   const [activeCardResult, setActiveCardResult] = useState<GeneratedCardResult | null>(null);
@@ -592,7 +594,7 @@ export default function App() {
 
       {/* Page Footer */}
       <footer id="app-footer" className="w-full relative z-10 py-6 border-t border-white/5 text-center mt-auto">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-center">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <a
             href="https://polskieradio.cc/"
             target="_blank"
@@ -601,8 +603,23 @@ export default function App() {
           >
             Christian Culture 2026
           </a>
+
+          <button
+            type="button"
+            onClick={() => setIsMissionModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.03] hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 text-xs text-[#f3dfb8] hover:text-white transition-all cursor-pointer"
+          >
+            <span className="text-red-500">❤️</span>
+            <span>Wesprzyj Misję Christian Culture</span>
+          </button>
         </div>
       </footer>
+
+      {/* Exit Intent & Mission Support Modal */}
+      <ExitIntentMissionModal
+        isOpen={isMissionModalOpen || undefined}
+        onClose={() => setIsMissionModalOpen(false)}
+      />
 
       {/* SEO + AEO + GEO Compliance Audit Modal */}
       <SeoAuditModal
