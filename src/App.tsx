@@ -607,10 +607,9 @@ export default function App() {
           <button
             type="button"
             onClick={() => setIsMissionModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.03] hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 text-xs text-[#f3dfb8] hover:text-white transition-all cursor-pointer"
+            className="font-cinzel text-xs text-white/50 hover:text-[#dfb872] transition-colors tracking-widest font-medium cursor-pointer"
           >
-            <span className="text-red-500">❤️</span>
-            <span>Wesprzyj Misję Christian Culture</span>
+            Wesprzyj Misję Kultury Chrześcijańskiej
           </button>
         </div>
       </footer>
