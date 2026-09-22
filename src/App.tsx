@@ -616,7 +616,7 @@ export default function App() {
 
       {/* Exit Intent & Mission Support Modal */}
       <ExitIntentMissionModal
-        isOpen={isMissionModalOpen || undefined}
+        isOpen={isMissionModalOpen}
         onClose={() => setIsMissionModalOpen(false)}
       />
 

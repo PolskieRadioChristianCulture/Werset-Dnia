@@ -21,19 +21,16 @@ interface ExitIntentMissionModalProps {
 }
 
 export const ExitIntentMissionModal: React.FC<ExitIntentMissionModalProps> = ({
-  isOpen: externalIsOpen,
+  isOpen: externalIsOpen = false,
   onClose: externalOnClose,
 }) => {
   const [internalIsOpen, setInternalIsOpen] = useState<boolean>(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  const isControlled = externalIsOpen !== undefined;
-  const isOpen = isControlled ? externalIsOpen : internalIsOpen;
+  const isOpen = externalIsOpen || internalIsOpen;
 
   // Exit intent listener for desktop and session tracking
   useEffect(() => {
-    if (isControlled) return;
-
     // Check if shown in this session
     const hasBeenShown = sessionStorage.getItem('cc_mission_exit_shown');
     if (hasBeenShown === 'true') return;
@@ -53,22 +50,32 @@ export const ExitIntentMissionModal: React.FC<ExitIntentMissionModalProps> = ({
       }
     };
 
-    // Delay activation of exit-intent by 4 seconds to let page settle
+    // Delay activation of exit-intent by 3.5 seconds to let page settle
     timeoutId = window.setTimeout(() => {
       document.addEventListener('mouseleave', handleMouseLeave);
-    }, 4000);
+    }, 3500);
 
     return () => {
       clearTimeout(timeoutId);
       document.removeEventListener('mouseleave', handleMouseLeave);
     };
-  }, [isControlled]);
+  }, []);
+
+  // Handle ESC key to close
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        handleClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   const handleClose = () => {
+    setInternalIsOpen(false);
     if (externalOnClose) {
       externalOnClose();
-    } else {
-      setInternalIsOpen(false);
     }
   };
 
