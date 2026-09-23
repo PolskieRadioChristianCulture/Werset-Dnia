@@ -111,7 +111,7 @@ export const LuminaAuthModal: React.FC<LuminaAuthModalProps> = ({
 
             <p className="text-white/70 text-xs sm:text-sm leading-relaxed mb-6 font-light">
               Zaloguj się kontem <span className="text-[#f3dfb8] font-medium">Google</span>, aby zapisać swoje ulubione wersety i autorskie tła w chmurze portalu{' '}
-              <span className="text-[#dfb872] font-semibold">Christian Culture — LUMINA</span>.
+              <span className="inline-block whitespace-nowrap text-[#dfb872] font-semibold">Christian Culture — LUMINA</span>.
             </p>
 
             {error && (
