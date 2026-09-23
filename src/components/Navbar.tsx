@@ -1,14 +1,14 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { LuminaUser } from '../types';
-import { Bookmark, Volume2, VolumeX, Sparkles, Bell, BellRing, BookOpen, Plus } from 'lucide-react';
+import { Bookmark, Sparkles, Bell, BellRing, BookOpen, Plus } from 'lucide-react';
 
 interface NavbarProps {
   user: LuminaUser | null;
   savedCount: number;
-  soundEnabled: boolean;
+  soundEnabled?: boolean;
   notificationsOptIn: boolean;
-  onToggleSound: () => void;
+  onToggleSound?: () => void;
   onOpenNotificationModal: () => void;
   onOpenSavedModal: () => void;
   onOpenAuthModal: () => void;
@@ -19,9 +19,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   user,
   savedCount,
-  soundEnabled,
   notificationsOptIn,
-  onToggleSound,
   onOpenNotificationModal,
   onOpenSavedModal,
   onOpenAuthModal,
@@ -49,43 +47,38 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="font-cinzel text-xs tracking-widest text-[#e8cb93] uppercase font-semibold">
                 Christian Culture
               </span>
-              <span className="text-xs text-white/50 group-hover:text-white/80 transition-colors flex items-center gap-1">
+              <span className="text-[10px] text-white/50 tracking-wider">
                 polskieradio.cc
-                <span className="text-[10px] text-[#e8cb93]/60 group-hover:text-[#e8cb93]">↗</span>
               </span>
             </div>
           </motion.a>
         </div>
 
-        {/* Right Corner Actions */}
+        {/* Right Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Add custom background (+) button */}
+          {/* Add / Personalize Custom Background (+) */}
           <motion.button
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.92 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={onOpenUploadModal}
-            id="navbar-upload-bg-btn"
+            id="navbar-add-bg-btn"
             aria-label="Wgraj własne tło"
-            title="Wgraj własne tło na stronę główną i do wersetu (+)"
-            className="w-9 h-9 rounded-full bg-[#dfb872]/15 hover:bg-[#dfb872]/25 border border-[#dfb872]/50 hover:border-[#dfb872] text-[#dfb872] flex items-center justify-center transition-all cursor-pointer shadow-sm group"
+            title="Wgraj własne tło do serwisu"
+            className="w-9 h-9 rounded-full bg-gradient-to-br from-[#d4af37]/20 to-[#b38e28]/20 hover:from-[#d4af37]/35 hover:to-[#b38e28]/35 border border-[#d4af37]/40 hover:border-[#e8cb93]/70 flex items-center justify-center text-[#f3dfb8] hover:text-white transition-all cursor-pointer shadow-sm"
           >
-            <Plus className="w-4 h-4 text-[#dfb872] group-hover:rotate-90 transition-transform duration-300" />
+            <Plus className="w-4 h-4 text-[#e8cb93]" />
           </motion.button>
 
-          {/* Notification Opt-In Toggle Button */}
+          {/* Notification Opt-in */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onOpenNotificationModal}
-            aria-label="Powiadomienia o Wersecie Dnia"
-            title={
-              notificationsOptIn
-                ? 'Powiadomienia o Wersecie Dnia są aktywne'
-                : 'Włącz powiadomienia o Wersecie Dnia'
-            }
+            aria-label="Powiadomienia o wersecie dnia"
+            title="Powiadomienia o wersecie dnia"
             className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer relative ${
               notificationsOptIn
-                ? 'bg-[#d4af37]/15 border border-[#d4af37]/45 text-[#e8cb93] hover:bg-[#d4af37]/25 shadow-sm'
+                ? 'bg-[#d4af37]/15 border border-[#d4af37]/40 text-[#f3dfb8]'
                 : 'bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white/70 hover:text-white'
             }`}
           >
@@ -96,22 +89,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               </>
             ) : (
               <Bell className="w-4 h-4 text-white/50 hover:text-white/80" />
-            )}
-          </motion.button>
-
-          {/* Audio Chime Toggle */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onToggleSound}
-            aria-label={soundEnabled ? 'Wycisz dźwięk' : 'Włącz dźwięk'}
-            title={soundEnabled ? 'Dźwięk włączony' : 'Dźwięk wyciszony'}
-            className="w-9 h-9 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors cursor-pointer"
-          >
-            {soundEnabled ? (
-              <Volume2 className="w-4 h-4 text-[#e8cb93]" />
-            ) : (
-              <VolumeX className="w-4 h-4 text-white/40" />
             )}
           </motion.button>
 

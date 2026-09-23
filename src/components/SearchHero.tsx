@@ -173,11 +173,11 @@ export const SearchHero: React.FC<SearchHeroProps> = ({
         <div ref={containerRef} className="w-full relative mb-5">
           <form
             onSubmit={handleSubmit}
-            className="w-full relative flex items-center bg-[#101319]/90 hover:bg-[#121620] focus-within:bg-[#141924] border border-white/12 focus-within:border-[#d4af37]/50 rounded-2xl shadow-2xl transition-all p-1.5 sm:p-2"
+            className="w-full relative flex items-center bg-[#101319]/90 hover:bg-[#121620] focus-within:bg-[#141924] border border-white/15 focus-within:border-[#d4af37]/50 rounded-full shadow-xl transition-all px-2.5 py-1 sm:py-1.5"
           >
             {/* Search Icon */}
-            <div className="pl-3.5 pr-2 text-white/40 flex items-center pointer-events-none">
-              <Search className="w-5 h-5 text-[#e8cb93]/80" />
+            <div className="pl-2 pr-1.5 text-white/40 flex items-center pointer-events-none">
+              <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#e8cb93]/80" />
             </div>
 
             {/* Input Field */}
@@ -187,7 +187,7 @@ export const SearchHero: React.FC<SearchHeroProps> = ({
               value={query}
               onChange={handleInputChange}
               placeholder="Zapytaj Biblię... (np. nadzieja, lęk, Psalm 23)"
-              className="w-full bg-transparent text-white text-base sm:text-lg placeholder:text-white/35 focus:outline-none py-2.5 px-2"
+              className="w-full bg-transparent text-white text-sm sm:text-base placeholder:text-white/35 focus:outline-none py-1.5 sm:py-2 px-2"
             />
 
             {/* Clear Button */}
@@ -200,10 +200,10 @@ export const SearchHero: React.FC<SearchHeroProps> = ({
                   setShowDropdown(false);
                   inputRef.current?.focus();
                 }}
-                className="p-1.5 text-white/40 hover:text-white rounded-full hover:bg-white/10 transition-colors mr-1 cursor-pointer"
+                className="p-1 text-white/40 hover:text-white rounded-full hover:bg-white/10 transition-colors mr-1 cursor-pointer"
                 title="Wyczyść"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
 
@@ -215,9 +215,9 @@ export const SearchHero: React.FC<SearchHeroProps> = ({
               onClick={onRandomVerse}
               disabled={isLoading}
               title="Wylosuj losowy werset"
-              className="p-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-[#e8cb93] hover:text-[#f7e6c4] transition-colors border border-white/5 mr-3 sm:mr-3.5 cursor-pointer"
+              className="p-1.5 sm:p-2 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-[#e8cb93] hover:text-[#f7e6c4] transition-colors border border-white/5 mr-1.5 sm:mr-2 cursor-pointer"
             >
-              <Dices className="w-5 h-5" />
+              <Dices className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             </motion.button>
 
             {/* Submit Arrow Button */}
@@ -226,10 +226,10 @@ export const SearchHero: React.FC<SearchHeroProps> = ({
               whileTap={{ scale: 0.96 }}
               type="submit"
               disabled={isLoading || isSearchingServer}
-              className="px-4 py-2.5 rounded-xl bg-[#dfb872] hover:bg-[#ebd095] text-neutral-950 font-semibold text-sm transition-all shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-3.5 py-1.5 sm:py-2 rounded-full bg-[#dfb872] hover:bg-[#ebd095] text-neutral-950 font-semibold text-xs sm:text-sm transition-all shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <span>Szukaj</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </motion.button>
           </form>
 

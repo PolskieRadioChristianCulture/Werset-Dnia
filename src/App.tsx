@@ -13,6 +13,16 @@ import { ShareModal } from './components/ShareModal';
 import { NotificationModal } from './components/NotificationModal';
 import { ExitIntentMissionModal } from './components/ExitIntentMissionModal';
 import { LoadingAnimation } from './components/LoadingAnimation';
+import {
+  saveVerseToFirestore,
+  removeVerseFromFirestore,
+  subscribeToUserSavedVerses,
+  saveCustomThemeToFirestore,
+  deleteCustomThemeFromFirestore,
+  subscribeToUserCustomThemes,
+  isFirebaseAuthActive,
+} from './services/firebaseSync';
+import { auth, onAuthStateChanged } from './lib/firebase';
 import { BIBLE_VERSES, getRandomVerse, getVerseBySlug, getVerseById } from './data/verses';
 import { BACKGROUNDS, DEFAULT_HOME_BACKGROUND, getBackgroundById, getDefaultBackgroundForCategory } from './data/backgrounds';
 import { TOPIC_HUBS, getTopicBySlug } from './data/topics';
@@ -85,6 +95,24 @@ export default function App() {
     setUser(storedUser);
     setSavedVerseIds(getStoredSavedVerseIds());
     setVerseHistory(getStoredHistory());
+
+    // Listen to Firebase Auth state
+    const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
+      if (fbUser) {
+        const syncedUser: LuminaUser = {
+          id: fbUser.uid,
+          name: fbUser.displayName || 'Użytkownik LUMINA',
+          email: fbUser.email || 'brak-email@lumina.cc',
+          avatarUrl: fbUser.photoURL || undefined,
+          role: 'Społeczność LUMINA',
+          isLoggedIn: true,
+          savedVerseIds: getStoredSavedVerseIds(),
+          history: getStoredHistory(),
+        };
+        setUser(syncedUser);
+        saveLuminaSession(syncedUser);
+      }
+    });
 
     // 2. Sound preference
     const soundPref = localStorage.getItem('cc_sound_enabled');
@@ -195,6 +223,7 @@ export default function App() {
     return () => {
       window.removeEventListener('hashchange', parseUrl);
       clearInterval(timer);
+      unsubscribeAuth();
     };
   }, []);
 
@@ -366,6 +395,10 @@ export default function App() {
         return updated;
       });
 
+      if (user?.id) {
+        saveCustomThemeToFirestore(user.id, theme).catch(() => {});
+      }
+
       // 2. Apply to home
       if (target === 'home' || target === 'all') {
         setHomeBackground(theme);
@@ -383,7 +416,7 @@ export default function App() {
         window.history.replaceState(null, '', `#w/${currentVerse.slug}?bg=${theme.id}`);
       }
     },
-    [currentVerse.slug]
+    [currentVerse.slug, user?.id]
   );
 
   const handleResetHomeBackground = useCallback(() => {
@@ -402,9 +435,35 @@ export default function App() {
       return updated;
     });
     setHomeBackground((prev) => (prev?.id === id ? DEFAULT_HOME_BACKGROUND : prev));
-  }, []);
+    if (user?.id) {
+      deleteCustomThemeFromFirestore(user.id, id).catch(() => {});
+    }
+  }, [user?.id]);
 
-  // Audio sound toggle
+  // Firestore Real-Time Subscriptions for logged-in user
+  useEffect(() => {
+    if (!user?.id || !isFirebaseAuthActive(user.id)) return;
+
+    // 1. Sync saved verses in real-time
+    const unsubscribeVerses = subscribeToUserSavedVerses(user.id, (cloudVerseIds) => {
+      if (cloudVerseIds && cloudVerseIds.length > 0) {
+        setSavedVerseIds(cloudVerseIds);
+      }
+    });
+
+    // 2. Sync custom themes in real-time
+    const unsubscribeThemes = subscribeToUserCustomThemes(user.id, (cloudThemes) => {
+      if (cloudThemes && cloudThemes.length > 0) {
+        setCustomBackgrounds(cloudThemes);
+      }
+    });
+
+    return () => {
+      unsubscribeVerses();
+      unsubscribeThemes();
+    };
+  }, [user?.id]);
+
   const handleToggleSound = () => {
     const next = !soundEnabled;
     setSoundEnabled(next);
@@ -418,12 +477,14 @@ export default function App() {
       setSavedVerseIds(updated);
       if (user) {
         saveLuminaSession({ ...user, savedVerseIds: updated });
+        removeVerseFromFirestore(user.id, currentVerse.id).catch(() => {});
       }
     } else {
       const updated = addVerseToFavorites(currentVerse.id);
       setSavedVerseIds(updated);
       if (user) {
         saveLuminaSession({ ...user, savedVerseIds: updated });
+        saveVerseToFirestore(user.id, currentVerse).catch(() => {});
       }
     }
   };
