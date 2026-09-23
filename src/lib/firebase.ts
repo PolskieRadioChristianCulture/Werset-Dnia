@@ -4,7 +4,8 @@ import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const defaultDb = getFirestore(app);
+export const db = firebaseConfig.firestoreDatabaseId ? getFirestore(app, firebaseConfig.firestoreDatabaseId) : defaultDb;
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 

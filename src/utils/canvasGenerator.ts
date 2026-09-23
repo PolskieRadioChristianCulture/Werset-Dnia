@@ -393,7 +393,7 @@ export async function renderVerseCardToCanvas({
   const footerSubSize = (isLandscape || isSquare || isPortrait) ? Math.round(height * 0.019) : Math.round(width * 0.021);
   ctx.font = `500 ${footerSubSize}px "Plus Jakarta Sans", system-ui, sans-serif`;
   ctx.fillStyle = 'rgba(223, 184, 114, 0.85)'; // Warm champagne gold brand accent
-  ctx.fillText('Christian Culture  •  polskieradio.cc', width / 2, footerY + footerSubSize * 1.5);
+  ctx.fillText('Christian Culture | polskieradio.cc', width / 2, footerY + footerSubSize * 1.5);
 
   // Convert canvas to Blob & File
   const dataUrl = canvas.toDataURL('image/png', 0.95);

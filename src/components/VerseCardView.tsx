@@ -21,11 +21,15 @@ import {
   ExternalLink,
   Heart,
   Youtube,
+  Loader2,
 } from 'lucide-react';
-import { BibleVerse, BackgroundTheme, AspectRatioFormat } from '../types';
+import { BibleVerse, BackgroundTheme, AspectRatioFormat, LuminaUser } from '../types';
 import { FORMAT_OPTIONS, getFormatOption, renderVerseCardToCanvas, downloadCardImage, GeneratedCardResult } from '../utils/canvasGenerator';
 import { shareWithWebShareAPI, copyToClipboard, getVerseShareUrl } from '../utils/shareUtils';
 import { trackEvent } from '../utils/analytics';
+import { publishVerseToLuminaCommunity, PublishResult } from '../services/luminaCommunityPublisher';
+import { getStoredLuminaUser } from '../services/luminaAuth';
+import { LuminaPublishSuccessModal } from './LuminaPublishSuccessModal';
 
 interface VerseCardViewProps {
   verse: BibleVerse;
@@ -33,6 +37,7 @@ interface VerseCardViewProps {
   format: AspectRatioFormat;
   isSavedInLumina: boolean;
   isLoggedIn: boolean;
+  user?: LuminaUser | null;
   notificationsOptIn?: boolean;
   onChangeFormat: (format: AspectRatioFormat) => void;
   onNextVerse: () => void;
@@ -41,7 +46,7 @@ interface VerseCardViewProps {
   onSaveToLumina: () => void;
   onOpenSavedModal?: () => void;
   onOpenNotificationModal?: () => void;
-  onRequireLuminaAuth: (pendingAction: 'download' | 'share' | 'save') => void;
+  onRequireLuminaAuth: (pendingAction: 'download' | 'share' | 'save' | 'publish_lumina') => void;
   onOpenShareModal: (cardResult?: GeneratedCardResult) => void;
   onBackToSearch: () => void;
   onSelectTopic?: (topicSlug: string) => void;
@@ -54,6 +59,7 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
   format,
   isSavedInLumina,
   isLoggedIn,
+  user,
   notificationsOptIn,
   onChangeFormat,
   onNextVerse,
@@ -69,6 +75,9 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
   onSelectVerse,
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isPublishingLumina, setIsPublishingLumina] = useState(false);
+  const [publishedResult, setPublishedResult] = useState<PublishResult | null>(null);
+  const [isPublishSuccessModalOpen, setIsPublishSuccessModalOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
   const [renderedCard, setRenderedCard] = useState<GeneratedCardResult | null>(null);
@@ -83,6 +92,50 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
     setTimeout(() => {
       setFavoriteToast(null);
     }, 2400);
+  };
+
+  const handlePublishToLumina = async () => {
+    trackEvent('publish_to_lumina_btn_clicked', { verse_id: verse.id, format });
+
+    if (!isLoggedIn) {
+      onRequireLuminaAuth('publish_lumina');
+      return;
+    }
+
+    const currentUser = user || getStoredLuminaUser();
+    if (!currentUser) {
+      onRequireLuminaAuth('publish_lumina');
+      return;
+    }
+
+    try {
+      setIsPublishingLumina(true);
+      let card = renderedCard;
+      if (!card) {
+        card = await renderVerseCardToCanvas({ verse, background, format });
+        setRenderedCard(card);
+      }
+
+      const res = await publishVerseToLuminaCommunity({
+        verse,
+        background,
+        format,
+        user: currentUser,
+        renderedCard: card,
+      });
+
+      if (res.success) {
+        setPublishedResult(res);
+        setIsPublishSuccessModalOpen(true);
+      } else {
+        alert(res.error || 'Nie udało się opublikować na LUMINA. Spróbuj ponownie.');
+      }
+    } catch (e: any) {
+      console.error('Publishing error:', e);
+      alert('Wystąpił błąd podczas publikowania na LUMINA.');
+    } finally {
+      setIsPublishingLumina(false);
+    }
   };
 
   // Pre-render canvas card in background when verse, bg or format changes
@@ -423,7 +476,7 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
             <div className={`font-sans text-[#e8cb93]/90 font-medium ${
               format === '16:9' || format === '1:1' || format === '4:5' ? 'text-[9px] sm:text-[10px]' : 'text-[10px]'
             }`}>
-              Christian Culture • polskieradio.cc
+              Christian Culture | polskieradio.cc
             </div>
           </div>
         </motion.div>
@@ -431,9 +484,61 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
 
       {/* ========================================================================= */}
       {/* ACTION BUTTONS BAR (Thumb-friendly mobile layout) */}
+      {/* 6 głównych przycisków o identycznym rozmiarze; Opublikuj na LUMINA jako 1. opcja */}
       {/* ========================================================================= */}
-      <div className="w-full max-w-xl mx-auto mt-4 sm:mt-6 flex flex-col gap-3">
-        {/* Primary Action Row: [ 🔄 Inny werset ] [ 🎨 Zmień tło ] */}
+      <div className="w-full max-w-xl mx-auto mt-4 sm:mt-6 flex flex-col gap-2.5">
+        {/* Row 1: [ ✨ Opublikuj na LUMINA (Promowana jako 1. opcja!) ] [ ❤️ Zapisz do Ulubionych ] */}
+        <div className="grid grid-cols-2 gap-2.5">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handlePublishToLumina}
+            disabled={isPublishingLumina}
+            className="py-3.5 px-4 rounded-2xl bg-gradient-to-r from-[#dfb872] via-[#f3dfb8] to-[#dfb872] hover:from-[#e5c283] hover:to-[#ebd6a6] text-neutral-950 font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xl shadow-amber-500/20 ring-1 ring-amber-300/50 relative overflow-hidden group disabled:opacity-60"
+            title="Opublikuj werset z grafiką na Tablicy Społeczności i Profilu LUMINA"
+          >
+            {isPublishingLumina ? (
+              <>
+                <Loader2 className="w-4 h-4 text-neutral-950 animate-spin" />
+                <span>Publikowanie...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 text-neutral-950 group-hover:scale-110 transition-transform" />
+                <span>Opublikuj na LUMINA</span>
+              </>
+            )}
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            type="button"
+            id="action-bar-favorite-btn"
+            onClick={handleToggleFavorite}
+            className={`py-3.5 px-4 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg border ${
+              isSavedInLumina
+                ? 'bg-rose-500/15 border-rose-500/40 text-rose-300 hover:bg-rose-500/25'
+                : 'bg-white/[0.07] hover:bg-white/[0.12] border-white/12 hover:border-[#dfb872]/40 text-white'
+            }`}
+            title={
+              isSavedInLumina
+                ? 'Werset zapisany w Moje Wersety / Ulubione (kliknij, by usunąć)'
+                : 'Zapisz do: Moje Wersety / Ulubione'
+            }
+          >
+            <Heart
+              className={`w-4 h-4 ${
+                isSavedInLumina
+                  ? 'fill-rose-500 text-rose-500 drop-shadow-[0_0_6px_rgba(244,63,94,0.6)]'
+                  : 'text-[#e8cb93]'
+              }`}
+            />
+            <span>{isSavedInLumina ? 'W Ulubionych' : 'Do Ulubionych'}</span>
+          </motion.button>
+        </div>
+
+        {/* Row 2: [ 🔄 Inny werset ] [ 🎨 Zmień tło ] */}
         <div className="grid grid-cols-2 gap-2.5">
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -456,16 +561,16 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
           </motion.button>
         </div>
 
-        {/* Secondary Action Row: [ ↗ Udostępnij ] [ ↓ Pobierz ] */}
+        {/* Row 3: [ ↗ Udostępnij ] [ ↓ Pobierz grafikę ] */}
         <div className="grid grid-cols-2 gap-2.5">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleShareClick}
             disabled={isGenerating}
-            className="py-3.5 px-4 rounded-2xl bg-gradient-to-r from-[#dfb872] via-[#e8cb93] to-[#dfb872] hover:from-[#e5c283] hover:to-[#ebd6a6] text-neutral-950 font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-[#d4af37]/15 disabled:opacity-50"
+            className="py-3.5 px-4 rounded-2xl bg-white/[0.07] hover:bg-white/[0.12] border border-white/12 hover:border-[#d4af37]/40 text-white font-medium text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg disabled:opacity-50"
           >
-            <Share2 className="w-4 h-4 text-neutral-950" />
+            <Share2 className="w-4 h-4 text-[#e8cb93]" />
             <span>Udostępnij</span>
           </motion.button>
 
@@ -481,47 +586,25 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
           </motion.button>
         </div>
 
-        {/* Tertiary Utility Row: [ 🌟 Opublikuj na LUMINA ] [ ❤️ Zapisz werset ] [ Kopiuj link / cytat ] */}
+        {/* Quick Utility Tools Row: [ Kopiuj tekst ] [ Kopiuj link ] [ YouTube ] [ Powiadomienia ] */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-1 px-1">
           <div className="flex items-center gap-2">
-            <a
-              href="https://polskieradio.cc/tablica"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackEvent('publish_to_lumina_clicked', { verse_id: verse.id })}
-              className="inline-flex items-center gap-1.5 text-xs py-2 px-3 rounded-full text-[#f3dfb8] hover:text-white bg-white/[0.04] hover:bg-[#d4af37]/20 border border-[#d4af37]/35 hover:border-[#d4af37]/70 transition-all cursor-pointer shadow-sm group"
-              title="Opublikuj na LUMINA (polskieradio.cc/tablica)"
+            <button
+              onClick={handleCopyText}
+              className="inline-flex items-center gap-1.5 text-xs text-white/60 hover:text-white py-1.5 px-2.5 rounded-full hover:bg-white/[0.06] transition-colors cursor-pointer"
+              title="Kopiuj treść wersetu"
             >
-              <Sparkles className="w-3.5 h-3.5 text-[#e8cb93] group-hover:scale-110 transition-transform" />
-              <span className="font-medium">Opublikuj na LUMINA</span>
-              <ExternalLink className="w-3 h-3 text-[#e8cb93]/60 group-hover:text-[#e8cb93]" />
-            </a>
+              {copiedText ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedText ? 'Skopiowano' : 'Kopiuj tekst'}</span>
+            </button>
 
             <button
-              type="button"
-              id="action-bar-favorite-btn"
-              onClick={handleToggleFavorite}
-              className={`inline-flex items-center gap-1.5 text-xs py-2 px-3 rounded-full transition-all cursor-pointer border shadow-sm ${
-                isSavedInLumina
-                  ? 'bg-rose-500/15 border-rose-500/40 text-rose-300 hover:bg-rose-500/25'
-                  : 'bg-white/[0.04] border-white/10 text-white/75 hover:text-white hover:bg-white/[0.08] hover:border-[#dfb872]/35'
-              }`}
-              title={
-                isSavedInLumina
-                  ? 'Werset zapisany w Moje Wersety / Ulubione (kliknij, by usunąć)'
-                  : 'Zapisz do: Moje Wersety / Ulubione'
-              }
+              onClick={handleCopyLink}
+              className="inline-flex items-center gap-1.5 text-xs text-white/60 hover:text-white py-1.5 px-2.5 rounded-full hover:bg-white/[0.06] transition-colors cursor-pointer"
+              title="Kopiuj bezpośredni link"
             >
-              <Heart
-                className={`w-3.5 h-3.5 ${
-                  isSavedInLumina
-                    ? 'fill-rose-500 text-rose-500 drop-shadow-[0_0_6px_rgba(244,63,94,0.6)]'
-                    : 'text-[#e8cb93]'
-                }`}
-              />
-              <span className="font-medium">
-                {isSavedInLumina ? 'W Ulubionych' : 'Zapisz do Ulubionych'}
-              </span>
+              {copiedLink ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Share2 className="w-3.5 h-3.5" />}
+              <span>{copiedLink ? 'Link skopiowany' : 'Kopiuj link'}</span>
             </button>
           </div>
 
@@ -544,24 +627,6 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
                 <span className="hidden sm:inline">Powiadomienia</span>
               </button>
             )}
-
-            <button
-              onClick={handleCopyText}
-              className="inline-flex items-center gap-1.5 text-xs text-white/60 hover:text-white py-1.5 px-2.5 rounded-full hover:bg-white/[0.06] transition-colors cursor-pointer"
-              title="Kopiuj treść wersetu"
-            >
-              {copiedText ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedText ? 'Skopiowano' : 'Kopiuj tekst'}</span>
-            </button>
-
-            <button
-              onClick={handleCopyLink}
-              className="inline-flex items-center gap-1.5 text-xs text-white/60 hover:text-white py-1.5 px-2.5 rounded-full hover:bg-white/[0.06] transition-colors cursor-pointer"
-              title="Kopiuj bezpośredni link"
-            >
-              {copiedLink ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Share2 className="w-3.5 h-3.5" />}
-              <span>{copiedLink ? 'Link skopiowany' : 'Kopiuj link'}</span>
-            </button>
 
             <a
               href="https://youtube.com/@wersetdnia_chsb?si=KSamoERrUAtHFL96"
@@ -707,6 +772,13 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
           <span>Domena: polskieradio.cc</span>
         </footer>
       </article>
+
+      {/* Modal Sukcesu Publikacji na Tablicy Społeczności i Profilu LUMINA */}
+      <LuminaPublishSuccessModal
+        isOpen={isPublishSuccessModalOpen}
+        result={publishedResult}
+        onClose={() => setIsPublishSuccessModalOpen(false)}
+      />
     </div>
   );
 };

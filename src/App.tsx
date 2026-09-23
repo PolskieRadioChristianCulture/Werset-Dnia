@@ -57,6 +57,7 @@ import { GeneratedCardResult, downloadCardImage, renderVerseCardToCanvas } from 
 import { shareWithWebShareAPI } from './utils/shareUtils';
 import { trackEvent } from './utils/analytics';
 import { playSpiritualChime } from './utils/audioChime';
+import { publishVerseToLuminaCommunity } from './services/luminaCommunityPublisher';
 
 export default function App() {
   // App navigation state
@@ -78,7 +79,7 @@ export default function App() {
 
   // Modals state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<'download' | 'share' | 'save' | null>(null);
+  const [pendingAction, setPendingAction] = useState<'download' | 'share' | 'save' | 'publish_lumina' | null>(null);
   const [isBgModalOpen, setIsBgModalOpen] = useState(false);
   const [isUploadBgModalOpen, setIsUploadBgModalOpen] = useState(false);
   const [isSavedModalOpen, setIsSavedModalOpen] = useState(false);
@@ -508,7 +509,7 @@ export default function App() {
   };
 
   // Handler when LUMINA login is required
-  const handleRequireLuminaAuth = (action: 'download' | 'share' | 'save') => {
+  const handleRequireLuminaAuth = (action: 'download' | 'share' | 'save' | 'publish_lumina') => {
     setPendingAction(action);
     setIsAuthModalOpen(true);
   };
@@ -555,6 +556,23 @@ export default function App() {
         }
       } catch (e) {
         setIsShareModalOpen(true);
+      }
+    } else if (actionToRun === 'publish_lumina') {
+      try {
+        const card = await renderVerseCardToCanvas({
+          verse: currentVerse,
+          background: currentBackground,
+          format,
+        });
+        await publishVerseToLuminaCommunity({
+          verse: currentVerse,
+          background: currentBackground,
+          format,
+          user: authenticatedUser,
+          renderedCard: card,
+        });
+      } catch (e) {
+        console.error('Publishing failed after login', e);
       }
     }
   };
@@ -639,6 +657,7 @@ export default function App() {
             format={format}
             isSavedInLumina={isCurrentSaved}
             isLoggedIn={user !== null}
+            user={user}
             notificationsOptIn={notificationSettings.optIn}
             onChangeFormat={(f) => setFormat(f)}
             onNextVerse={handleRandomize}
