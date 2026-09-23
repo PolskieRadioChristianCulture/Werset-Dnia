@@ -1,7 +1,7 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { LuminaUser } from '../types';
-import { Bookmark, Sparkles, Bell, BellRing, BookOpen, Plus } from 'lucide-react';
+import { Bookmark, Sparkles, Bell, BellRing, BookOpen, Plus, LogOut, User, ChevronDown, ExternalLink } from 'lucide-react';
 
 interface NavbarProps {
   user: LuminaUser | null;
@@ -14,6 +14,7 @@ interface NavbarProps {
   onOpenAuthModal: () => void;
   onOpenUploadModal: () => void;
   onGoHome: () => void;
+  onLogout: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -25,7 +26,35 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAuthModal,
   onOpenUploadModal,
   onGoHome,
+  onLogout,
 }) => {
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+    if (isUserMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isUserMenuOpen]);
+
+  // Clean displayName - never display raw email addresses
+  const displayName = React.useMemo(() => {
+    if (!user || !user.name) return 'Społeczność LUMINA';
+    if (user.name.includes('@')) {
+      return 'Społeczność LUMINA';
+    }
+    return user.name;
+  }, [user]);
+
   return (
     <header className="w-full fixed top-0 left-0 z-40 px-2 sm:px-4 py-3 bg-[#07080a]/85 backdrop-blur-md border-b border-white/[0.06] transition-all">
       <div className="w-full px-2 sm:px-4 md:px-8 flex items-center justify-between">
@@ -111,26 +140,94 @@ export const Navbar: React.FC<NavbarProps> = ({
           </motion.button>
 
           {/* User profile / Login to LUMINA */}
-          {user ? (
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={onOpenAuthModal}
-              className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-transparent hover:bg-white/[0.06] border border-[#d4af37]/30 hover:border-[#d4af37]/60 text-xs text-[#f3dfb8] transition-all cursor-pointer"
-            >
-              {user.avatarUrl ? (
-                <img
-                  src={user.avatarUrl}
-                  alt={user.name}
-                  className="w-5 h-5 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-5 h-5 rounded-full bg-[#d4af37]/30 flex items-center justify-center text-[10px] font-bold text-[#f3dfb8]">
-                  {user.name.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <span className="max-w-[100px] truncate font-medium">{user.name}</span>
-            </motion.button>
+          {user && user.isLoggedIn ? (
+            <div className="relative" ref={menuRef}>
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-full bg-white/[0.03] hover:bg-white/[0.08] border border-[#d4af37]/30 hover:border-[#d4af37]/60 text-xs text-[#f3dfb8] transition-all cursor-pointer"
+                title="Konto społeczności LUMINA"
+              >
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={displayName}
+                    className="w-5 h-5 rounded-full object-cover border border-[#d4af37]/40"
+                  />
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-[#d4af37]/30 flex items-center justify-center text-[10px] font-bold text-[#f3dfb8]">
+                    {displayName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className="max-w-[110px] truncate font-medium">{displayName}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-[#dfb872]/80 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+              </motion.button>
+
+              {/* User Dropdown Menu with Logout & Community Profile Link */}
+              <AnimatePresence>
+                {isUserMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                    transition={{ duration: 0.15, ease: 'easeOut' }}
+                    className="absolute right-0 top-full mt-2 w-64 bg-[#0d1017]/95 border border-[#d4af37]/40 rounded-2xl p-3.5 shadow-2xl backdrop-blur-xl z-50 text-left"
+                  >
+                    <div className="flex items-center gap-3 pb-3 border-b border-white/10">
+                      {user.avatarUrl ? (
+                        <img src={user.avatarUrl} alt={displayName} className="w-10 h-10 rounded-full object-cover border border-[#d4af37]/40" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-[#d4af37]/20 border border-[#d4af37]/40 flex items-center justify-center font-bold text-[#f3dfb8]">
+                          {displayName.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-semibold text-white truncate">{displayName}</span>
+                        <span className="text-[11px] text-[#dfb872] tracking-wide font-medium">Społeczność LUMINA 🕊️</span>
+                      </div>
+                    </div>
+
+                    <div className="py-2 space-y-1">
+                      <a
+                        href={`https://polskieradio.cc/lumina-profile.html?u=${encodeURIComponent(user.id)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between px-3 py-2 rounded-xl text-xs text-white/80 hover:text-white hover:bg-white/[0.06] transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <User className="w-4 h-4 text-[#dfb872]" />
+                          <span>Mój profil w LUMINA</span>
+                        </div>
+                        <ExternalLink className="w-3 h-3 text-white/40" />
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => { setIsUserMenuOpen(false); onOpenSavedModal(); }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-white/80 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer text-left"
+                      >
+                        <Bookmark className="w-4 h-4 text-[#dfb872]" />
+                        <span>Moje zapisane wersety ({savedCount})</span>
+                      </button>
+                    </div>
+
+                    <div className="pt-2 border-t border-white/10">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onLogout();
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors cursor-pointer font-medium text-left"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Wyloguj się</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           ) : (
             <motion.button
               whileHover={{ scale: 1.03 }}

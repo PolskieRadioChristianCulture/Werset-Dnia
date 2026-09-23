@@ -30,14 +30,18 @@ export const LuminaAuthModal: React.FC<LuminaAuthModalProps> = ({
       trackEvent('lumina_login_started', { type: 'google_firebase' });
       const result = await signInWithPopup(auth, googleProvider);
       const firebaseUser = result.user;
+      localStorage.removeItem('cc_user_explicitly_logged_out');
+
+      let cleanName = firebaseUser.displayName;
+      if (!cleanName || cleanName.includes('@')) {
+        cleanName = 'Członek Społeczności LUMINA';
+      }
 
       const luminaUser: LuminaUser = {
         id: firebaseUser.uid,
-        name: firebaseUser.displayName || 'Użytkownik LUMINA',
-        email: firebaseUser.email || 'brak-email@lumina.cc',
-        avatarUrl:
-          firebaseUser.photoURL ||
-          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+        name: cleanName,
+        email: firebaseUser.email || '',
+        avatarUrl: firebaseUser.photoURL || undefined,
         role: 'Społeczność LUMINA',
         isLoggedIn: true,
         savedVerseIds: [],

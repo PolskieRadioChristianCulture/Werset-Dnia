@@ -17,17 +17,67 @@ export async function syncUserProfileToFirestore(user: LuminaUser): Promise<void
   if (!isFirebaseAuthActive(user.id)) return;
   const path = `users/${user.id}`;
   try {
+    // 1. Zapis w kolekcji users
     await setDoc(
       doc(db, 'users', user.id),
       {
         id: user.id,
+        uid: user.id,
         name: user.name,
         email: user.email,
         avatarUrl: user.avatarUrl || '',
+        role: user.role || 'Społeczność LUMINA',
         updatedAt: new Date().toISOString(),
       },
       { merge: true }
     );
+
+    // 2. Automatyczne utworzenie profilu w Społeczności LUMINA (kolekcja lumina_profiles)
+    await setDoc(
+      doc(db, 'lumina_profiles', user.id),
+      {
+        id: user.id,
+        uid: user.id,
+        name: user.name,
+        email: user.email,
+        avatarUrl: user.avatarUrl || '',
+        role: 'Społeczność LUMINA',
+        bio: 'Użytkownik ekosystemu Christian Culture & LUMINA',
+        slug: user.id,
+        source: 'werset-dnia',
+        isCommunityMember: true,
+        faithValues: ['Słowo Boże', 'Modlitwa', 'Werset Dnia'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+
+    // 3. Synchronizacja kluczy lokalnych LUMINA dla całego portalu polskieradio.cc
+    try {
+      localStorage.setItem('lumina_current_user', JSON.stringify({
+        uid: user.id,
+        email: user.email,
+        displayName: user.name,
+        photoURL: user.avatarUrl || ''
+      }));
+      localStorage.setItem('lumina_current_user_profile', JSON.stringify({
+        id: user.id,
+        name: user.name,
+        role: 'Społeczność LUMINA',
+        avatarUrl: user.avatarUrl || '',
+        slug: user.id
+      }));
+      localStorage.setItem('lumina_my_profile', JSON.stringify({
+        id: user.id,
+        name: user.name,
+        role: 'Społeczność LUMINA',
+        avatarUrl: user.avatarUrl || '',
+        slug: user.id
+      }));
+    } catch (e) {
+      console.warn('Lumina local storage sync warning', e);
+    }
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }

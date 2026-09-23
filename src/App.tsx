@@ -33,6 +33,7 @@ import {
   getStoredSavedVerseIds,
   getStoredHistory,
   saveLuminaSession,
+  logoutLuminaSession,
   addVerseToFavorites,
   removeVerseFromFavorites,
   recordVerseHistory,
@@ -91,18 +92,33 @@ export default function App() {
   // Initialize session and URL routing on mount
   useEffect(() => {
     // 1. Load user session
-    const storedUser = getStoredLuminaUser();
-    setUser(storedUser);
+    const explicitlyLoggedOut = localStorage.getItem('cc_user_explicitly_logged_out') === 'true';
+    if (!explicitlyLoggedOut) {
+      const storedUser = getStoredLuminaUser();
+      if (storedUser && storedUser.isLoggedIn) {
+        if (storedUser.name && storedUser.name.includes('@')) {
+          storedUser.name = 'Społeczność LUMINA';
+        }
+        setUser(storedUser);
+      }
+    } else {
+      setUser(null);
+    }
     setSavedVerseIds(getStoredSavedVerseIds());
     setVerseHistory(getStoredHistory());
 
     // Listen to Firebase Auth state
     const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
-      if (fbUser) {
+      const isLoggedOut = localStorage.getItem('cc_user_explicitly_logged_out') === 'true';
+      if (fbUser && !isLoggedOut) {
+        let cleanName = fbUser.displayName;
+        if (!cleanName || cleanName.includes('@')) {
+          cleanName = 'Członek Społeczności LUMINA';
+        }
         const syncedUser: LuminaUser = {
           id: fbUser.uid,
-          name: fbUser.displayName || 'Użytkownik LUMINA',
-          email: fbUser.email || 'brak-email@lumina.cc',
+          name: cleanName,
+          email: fbUser.email || '',
           avatarUrl: fbUser.photoURL || undefined,
           role: 'Społeczność LUMINA',
           isLoggedIn: true,
@@ -111,6 +127,8 @@ export default function App() {
         };
         setUser(syncedUser);
         saveLuminaSession(syncedUser);
+      } else {
+        setUser(null);
       }
     });
 
@@ -541,6 +559,21 @@ export default function App() {
     }
   };
 
+  const handleLogout = useCallback(async () => {
+    try {
+      localStorage.setItem('cc_user_explicitly_logged_out', 'true');
+      logoutLuminaSession();
+      localStorage.removeItem('lumina_current_user');
+      localStorage.removeItem('lumina_current_user_profile');
+      localStorage.removeItem('lumina_my_profile');
+      await auth.signOut();
+    } catch (e) {
+      console.warn('Logout error', e);
+    } finally {
+      setUser(null);
+    }
+  }, []);
+
   const isCurrentSaved = savedVerseIds.includes(currentVerse.id);
 
   return (
@@ -579,6 +612,7 @@ export default function App() {
           setViewMode('search');
           window.history.replaceState(null, '', window.location.pathname);
         }}
+        onLogout={handleLogout}
       />
 
       {/* Main View Flow */}
