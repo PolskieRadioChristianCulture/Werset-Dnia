@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, BookOpen, Sparkles, ChevronRight, Share2, Compass, HelpCircle } from 'lucide-react';
+import { ArrowLeft, BookOpen, Sparkles, ChevronRight, Share2, Compass, HelpCircle, Youtube, Play, ExternalLink } from 'lucide-react';
 import { TopicHub, BibleVerse, BibleQuestion } from '../types';
 import { getVerseBySlug } from '../data/verses';
 import { TOPIC_HUBS, getTopicBySlug } from '../data/topics';
@@ -89,6 +89,34 @@ export const TopicHubView: React.FC<TopicHubViewProps> = ({
             <span>Opracowanie: Christian Culture — Redakcja Biblijna</span>
             <span>Źródło: Pismo Święte Starego i Nowego Testamentu</span>
           </div>
+        </section>
+
+        {/* Thematic YouTube Resource from @wersetdnia_chsb */}
+        <section aria-label="Wideo rozważania na YouTube" className="p-5 rounded-2xl bg-gradient-to-r from-red-950/30 via-[#10131a] to-transparent border border-red-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg backdrop-blur-sm">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-xl bg-red-600/20 border border-red-500/35 flex items-center justify-center text-red-400 shrink-0 shadow-inner">
+              <Youtube className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                <span>Wideo rozważania: {topic.name}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 font-semibold uppercase tracking-wider">YouTube</span>
+              </h3>
+              <p className="text-xs text-white/60 mt-0.5 leading-relaxed">
+                Oglądaj codzienne rozważania i komentarze biblijne na oficjalnym kanale <strong className="text-red-300 font-medium">Werset Dnia</strong>.
+              </p>
+            </div>
+          </div>
+          <a
+            href="https://youtube.com/@wersetdnia_chsb?si=KSamoERrUAtHFL96"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold text-xs transition-all shadow-md flex items-center gap-2 shrink-0 cursor-pointer"
+          >
+            <Play className="w-3.5 h-3.5 fill-current" />
+            <span>Oglądaj na YouTube</span>
+            <ExternalLink className="w-3.5 h-3.5 ml-0.5" />
+          </a>
         </section>
 
         {/* Section 2: Biblical Verses (Canonical Passages) */}

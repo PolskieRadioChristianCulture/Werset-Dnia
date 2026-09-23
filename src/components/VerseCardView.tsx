@@ -20,6 +20,7 @@ import {
   Info,
   ExternalLink,
   Heart,
+  Youtube,
 } from 'lucide-react';
 import { BibleVerse, BackgroundTheme, AspectRatioFormat } from '../types';
 import { FORMAT_OPTIONS, getFormatOption, renderVerseCardToCanvas, downloadCardImage, GeneratedCardResult } from '../utils/canvasGenerator';
@@ -561,6 +562,17 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
               {copiedLink ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Share2 className="w-3.5 h-3.5" />}
               <span>{copiedLink ? 'Link skopiowany' : 'Kopiuj link'}</span>
             </button>
+
+            <a
+              href="https://youtube.com/@wersetdnia_chsb?si=KSamoERrUAtHFL96"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-red-300 hover:text-red-200 py-1.5 px-2.5 rounded-full bg-red-500/[0.08] hover:bg-red-500/[0.16] border border-red-500/20 transition-colors cursor-pointer"
+              title="Wideo rozważania na oficjalnym kanale YouTube Werset Dnia"
+            >
+              <Youtube className="w-3.5 h-3.5 text-red-400" />
+              <span className="hidden sm:inline">YouTube</span>
+            </a>
           </div>
         </div>
       </div>
