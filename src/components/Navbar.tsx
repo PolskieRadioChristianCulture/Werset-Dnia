@@ -114,7 +114,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {notificationsOptIn ? (
               <>
                 <BellRing className="w-4 h-4 text-[#e8cb93]" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#dfb872] ring-2 ring-[#07080a]" />
+                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#dfb872] ring-2 ring-[#07080a]" />
               </>
             ) : (
               <Bell className="w-4 h-4 text-white/50 hover:text-white/80" />
