@@ -300,30 +300,6 @@ export const SearchHero: React.FC<SearchHeroProps> = ({
           </AnimatePresence>
         </div>
 
-        {/* Thematic YouTube Channel Recommendation Banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.12 }}
-          className="mb-4"
-        >
-          <a
-            href="https://youtube.com/@wersetdnia_chsb?si=KSamoERrUAtHFL96"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-red-950/35 via-red-900/20 to-transparent hover:from-red-900/45 hover:via-red-800/30 border border-red-500/25 hover:border-red-500/50 text-[11px] sm:text-xs text-white/80 hover:text-white transition-all shadow-sm cursor-pointer"
-            title="Przejdź do oficjalnego kanału YouTube Werset Dnia"
-          >
-            <div className="w-4 h-4 rounded-full bg-red-600 flex items-center justify-center text-white shrink-0 shadow-sm">
-              <Play className="w-2 h-2 fill-current ml-0.5" />
-            </div>
-            <span>
-              Wideo rozważania tematyczne na kanale <strong className="text-red-300 font-semibold group-hover:text-red-200">YouTube @wersetdnia_chsb</strong>
-            </span>
-            <ExternalLink className="w-3 h-3 text-white/40 group-hover:text-white shrink-0" />
-          </a>
-        </motion.div>
-
         {/* Delikatny przycisk: "Dzisiaj potrzebuję:" */}
         <div className="w-full flex flex-col items-center">
           <motion.button
@@ -354,8 +330,27 @@ export const SearchHero: React.FC<SearchHeroProps> = ({
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.35, ease: 'easeInOut' }}
-              className="w-full flex flex-col items-center overflow-hidden pt-6"
+              className="w-full flex flex-col items-center overflow-hidden pt-5"
             >
+              {/* Rekomendacja wideo kanału YouTube @wersetdnia_chsb wewnątrz "Dzisiaj potrzebuję:" */}
+              <div className="mb-4">
+                <a
+                  href="https://youtube.com/@wersetdnia_chsb?si=KSamoERrUAtHFL96"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-red-950/40 via-red-900/25 to-red-950/40 hover:from-red-900/50 hover:via-red-800/40 hover:to-red-900/50 border border-red-500/30 hover:border-red-500/60 text-xs text-white/90 hover:text-white transition-all shadow-md cursor-pointer"
+                  title="Wideo rozważania tematyczne na kanale YouTube @wersetdnia_chsb"
+                >
+                  <div className="w-4.5 h-4.5 rounded-full bg-red-600 flex items-center justify-center text-white shrink-0 shadow-sm">
+                    <Play className="w-2.5 h-2.5 fill-current ml-0.5" />
+                  </div>
+                  <span>
+                    Wideo rozważania tematyczne na kanale <strong className="text-red-300 font-semibold group-hover:text-red-200">YouTube @wersetdnia_chsb</strong>
+                  </span>
+                  <ExternalLink className="w-3.5 h-3.5 text-white/40 group-hover:text-white shrink-0 ml-0.5" />
+                </a>
+              </div>
+
               {/* Chipy tematyczne */}
               <div className="w-full flex flex-col items-center">
                 <div className="flex flex-wrap items-center justify-center gap-2 max-w-xl">
