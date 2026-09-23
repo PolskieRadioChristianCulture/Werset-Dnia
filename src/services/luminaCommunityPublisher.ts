@@ -74,7 +74,7 @@ export async function publishVerseToLuminaCommunity({
       type: 'verse_card',
       title: `Mój Werset Dnia — ${verse.reference}`,
       text: `„${verse.text}”\n— ${verse.reference} (${verse.translation})\n\n🕊️ Opublikowano z aplikacji Mój Werset Dnia (polskieradio.cc/werset-dnia)`,
-      image: card.dataUrl, // Pełna wygenerowana karta ze stopką "Mój Werset Dnia" Christian Culture | polskieradio.cc
+      image: card.webOptimizedDataUrl || card.dataUrl, // Zoptymalizowana karta ze stopką "Mój Werset Dnia" mieszcząca się w limicie Firestore
       verseId: verse.id,
       verseReference: verse.reference,
       verseText: verse.text,

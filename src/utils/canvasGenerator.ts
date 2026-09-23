@@ -55,6 +55,82 @@ export interface GeneratedCardResult {
   file: File;
   width: number;
   height: number;
+  webOptimizedDataUrl?: string;
+}
+
+/**
+ * Preloads web fonts into the document so Canvas can use them.
+ * Canvas 2D ignores CSS @font-face unless the font is already loaded
+ * in the document's FontFaceSet. We load Cormorant Garamond (serif, verse text)
+ * and Plus Jakarta Sans (sans, reference & footer) explicitly.
+ */
+async function preloadCanvasFonts(): Promise<void> {
+  const fonts = [
+    {
+      family: 'Cormorant Garamond',
+      weight: '500',
+      url: 'https://fonts.gstatic.com/s/cormorantgaramond/v22/co3bmX5slCNuHLi8bLeY9MK7whWMhyjYrEtshqg.woff2',
+    },
+    {
+      family: 'Cormorant Garamond',
+      weight: '700',
+      url: 'https://fonts.gstatic.com/s/cormorantgaramond/v22/co3bmX5slCNuHLi8bLeY9MK7whWMhyjYrCtqhqg.woff2',
+    },
+    {
+      family: 'Plus Jakarta Sans',
+      weight: '600',
+      url: 'https://fonts.gstatic.com/s/plusjakartasans/v8/LDIoaomQNQcsA88c7O9yZ4KMCoOg4IA6-91aHEjcWuA.woff2',
+    },
+    {
+      family: 'Plus Jakarta Sans',
+      weight: '700',
+      url: 'https://fonts.gstatic.com/s/plusjakartasans/v8/LDIoaomQNQcsA88c7O9yZ4KMCoOg4IA6-91aHEjcWuA.woff2',
+    },
+  ];
+
+  const loadPromises = fonts.map(async ({ family, weight, url }) => {
+    if (document.fonts.check(`${weight} 12px "${family}"`)) return;
+    try {
+      const face = new FontFace(family, `url(${url})`, { weight });
+      const loaded = await face.load();
+      document.fonts.add(loaded);
+    } catch (e) {
+      console.warn(`[canvasGenerator] Could not load font ${family} ${weight}:`, e);
+    }
+  });
+
+  await Promise.allSettled(loadPromises);
+  await document.fonts.ready;
+}
+
+/**
+ * Draws text with manual letter-spacing (ctx.letterSpacing is not standard Canvas API).
+ * Centers the full string at (x, y) — ctx.textAlign should be 'center' conceptually
+ * but we switch to 'left' internally and handle centering ourselves.
+ */
+function fillTextLetterSpaced(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  letterSpacing: number
+): void {
+  if (letterSpacing === 0) {
+    ctx.fillText(text, x, y);
+    return;
+  }
+  const charWidths = Array.from(text).map(ch => ctx.measureText(ch).width);
+  const totalWidth =
+    charWidths.reduce((sum, w) => sum + w, 0) +
+    letterSpacing * (text.length - 1);
+  const savedAlign = ctx.textAlign;
+  ctx.textAlign = 'left';
+  let currentX = x - totalWidth / 2;
+  Array.from(text).forEach((ch, i) => {
+    ctx.fillText(ch, currentX, y);
+    currentX += charWidths[i] + letterSpacing;
+  });
+  ctx.textAlign = savedAlign;
 }
 
 /**
@@ -119,6 +195,9 @@ export async function renderVerseCardToCanvas({
     throw new Error('Failed to acquire canvas context');
   }
 
+  // 0. Preload web fonts so Canvas renders Cormorant Garamond & Plus Jakarta Sans correctly
+  await preloadCanvasFonts();
+
   // 1. Draw Background
   try {
     const img = await loadImage(background.imageUrl);
@@ -150,49 +229,56 @@ export async function renderVerseCardToCanvas({
     ctx.fillRect(0, 0, width, height);
   }
 
-  // 2. Cinematic Dark Scrim Overlays for crystal clear text readability
-  // Overall darkness overlay
-  ctx.fillStyle = 'rgba(7, 9, 13, 0.45)';
+  // 2. Cinematic Dark Scrim — balanced so background photo remains visible
+  // Single base overlay (reduced from 0.45 → 0.30 so photo shows through)
+  ctx.fillStyle = 'rgba(5, 7, 11, 0.30)';
   ctx.fillRect(0, 0, width, height);
 
-  // Center vignette gradient
+  // Vignette — edges darken, center stays lighter to show the photo
   const centerGrad = ctx.createRadialGradient(
     width / 2,
-    height * 0.48,
-    width * 0.1,
+    height * 0.5,
+    width * 0.05,
     width / 2,
-    height * 0.48,
-    width * 0.8
+    height * 0.5,
+    width * 0.85
   );
-  centerGrad.addColorStop(0, 'rgba(8, 10, 15, 0.55)');
-  centerGrad.addColorStop(0.7, 'rgba(6, 8, 12, 0.82)');
-  centerGrad.addColorStop(1, 'rgba(4, 5, 8, 0.95)');
+  centerGrad.addColorStop(0, 'rgba(0, 0, 0, 0.20)');
+  centerGrad.addColorStop(0.6, 'rgba(0, 0, 0, 0.52)');
+  centerGrad.addColorStop(1, 'rgba(0, 0, 0, 0.82)');
   ctx.fillStyle = centerGrad;
   ctx.fillRect(0, 0, width, height);
 
-  // Soft bottom dark gradient for brand footer prominence
-  const bottomGrad = ctx.createLinearGradient(0, height * 0.7, 0, height);
-  bottomGrad.addColorStop(0, 'rgba(5, 7, 10, 0)');
-  bottomGrad.addColorStop(1, 'rgba(4, 5, 8, 0.95)');
+  // Bottom gradient for footer area readability
+  const bottomGrad = ctx.createLinearGradient(0, height * 0.72, 0, height);
+  bottomGrad.addColorStop(0, 'rgba(3, 4, 6, 0)');
+  bottomGrad.addColorStop(1, 'rgba(3, 4, 6, 0.88)');
   ctx.fillStyle = bottomGrad;
-  ctx.fillRect(0, height * 0.7, width, height * 0.3);
+  ctx.fillRect(0, height * 0.72, width, height * 0.28);
+
+  // Top gradient for header area
+  const topGrad = ctx.createLinearGradient(0, 0, 0, height * 0.22);
+  topGrad.addColorStop(0, 'rgba(3, 4, 6, 0.75)');
+  topGrad.addColorStop(1, 'rgba(3, 4, 6, 0)');
+  ctx.fillStyle = topGrad;
+  ctx.fillRect(0, 0, width, height * 0.22);
 
   // 3. Subtle Warm Ambient Lighting Accent
   const goldAura = ctx.createRadialGradient(
     width / 2,
-    height * 0.35,
+    height * 0.40,
     20,
     width / 2,
-    height * 0.35,
-    width * 0.45
+    height * 0.40,
+    width * 0.5
   );
-  goldAura.addColorStop(0, 'rgba(223, 184, 114, 0.08)');
+  goldAura.addColorStop(0, 'rgba(223, 184, 114, 0.06)');
   goldAura.addColorStop(1, 'rgba(223, 184, 114, 0)');
   ctx.fillStyle = goldAura;
   ctx.fillRect(0, 0, width, height);
 
   // Inner subtle border line
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+  ctx.strokeStyle = 'rgba(223, 184, 114, 0.18)';
   ctx.lineWidth = 2;
   const isTall = format === '9:16';
   const isLandscape = format === '16:9';
@@ -201,202 +287,166 @@ export async function renderVerseCardToCanvas({
   const margin = Math.round((isLandscape || isSquare) ? height * 0.035 : width * 0.04);
   ctx.strokeRect(margin, margin, width - margin * 2, height - margin * 2);
 
-  // 4. Header Badge / Top Flourish (Crosses removed)
+  // 4. Header Badge
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
   const topHeaderY = isTall ? height * 0.13 : (isLandscape || isSquare) ? height * 0.095 : isPortrait ? height * 0.105 : height * 0.11;
   const badgeFontSize = (isLandscape || isSquare || isPortrait) ? Math.round(height * 0.022) : Math.round(width * 0.024);
+  const badgeLetterSpacing = (isLandscape || isSquare || isPortrait) ? 4 : 5;
 
-  // Spiritual badge without crosses
-  ctx.fillStyle = '#dfb872'; // Refined champagne gold accent
-  ctx.font = `600 ${badgeFontSize}px sans-serif`;
-  ctx.letterSpacing = (isLandscape || isSquare || isPortrait) ? '4px' : '5px';
-  ctx.fillText('SŁOWO BOŻE NA DZIŚ', width / 2, topHeaderY);
+  // Subtle text shadow for header
+  ctx.shadowColor = 'rgba(0,0,0,0.7)';
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetY = 2;
+
+  ctx.fillStyle = '#dfb872';
+  ctx.font = `700 ${badgeFontSize}px "Plus Jakarta Sans", system-ui, sans-serif`;
+  fillTextLetterSpaced(ctx, 'SŁOWO BOŻE NA DZIŚ', width / 2, topHeaderY, badgeLetterSpacing);
+
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
 
   // 5. Quote Mark
   const quoteY = topHeaderY + ((isLandscape || isSquare) ? height * 0.045 : isPortrait ? height * 0.048 : (isTall ? height * 0.055 : height * 0.05));
   const quoteFontSize = isLandscape ? Math.round(height * 0.058) : (isSquare || isPortrait) ? Math.round(height * 0.065) : Math.round(width * 0.08);
-  ctx.font = `italic 700 ${quoteFontSize}px "Cormorant Garamond", Georgia, serif`;
-  ctx.fillStyle = 'rgba(223, 184, 114, 0.45)';
-  ctx.fillText('“', width / 2, quoteY);
+  ctx.font = `700 ${quoteFontSize}px "Cormorant Garamond", Georgia, serif`;
+  ctx.fillStyle = 'rgba(223, 184, 114, 0.55)';
+  ctx.fillText('\u201C', width / 2, quoteY);
 
-  // 8. MANDATORY BAKED-IN FOOTER WATERMARK coordinates defined early to measure available vertical window
-  // Strictly inside decorative frame across all formats (especially 4:5)
-  // In 1:1 format, footer is raised by 3mm (~34px on 1080x1080 canvas)
-  const footerY = height - (
-    isTall ? height * 0.085 :
-    isLandscape ? (height * 0.096) :
-    isSquare ? (height * 0.085 + 34) :
-    isPortrait ? (height * 0.095) :
-    height * 0.085
-  );
-  const footerSepY = footerY - (isLandscape || isSquare || isPortrait ? 24 : Math.round(width * 0.04));
+  // ─── LAYOUT: Fixed percentage Y positions ─────────────────────────────────
+  // Each element is anchored directly to canvas height — NO cascading.
+  // Zones (% of height):
+  //   0-20%  : header (SŁOWO BOŻE + quote mark)
+  //   20-62% : verse text
+  //   63%    : verse→ref separator line (short gold)
+  //   67%    : PSALM reference
+  //   73%    : Biblia Warszawska
+  //   79%    : footer separator line (wide)
+  //   85%    : MÓJ WERSET DNIA
+  //   91%    : Christian Culture | polskieradio.cc
 
-  // Visual content window between quote mark and footer separator
-  const contentTop = quoteY + ((isLandscape || isSquare || isPortrait) ? height * 0.035 : height * 0.04);
-  const contentBottom = footerSepY - (isLandscape || isSquare || isPortrait ? 16 : 24);
-  const availableHeight = Math.max(200, contentBottom - contentTop);
+  // Adjust for landscape (wider, shorter) vs tall formats
+  const zVerseSep  = isLandscape ? 0.60 : isTall ? 0.64 : 0.63;  // short gold line
+  const zRef       = isLandscape ? 0.68 : isTall ? 0.70 : 0.68;  // PSALM X:Y
+  const zTrans     = isLandscape ? 0.75 : isTall ? 0.77 : 0.74;  // Biblia Warszawska
+  const zFooterSep = isLandscape ? 0.82 : isTall ? 0.83 : 0.80;  // wide footer line
+  const zTitle     = isLandscape ? 0.88 : isTall ? 0.89 : 0.86;  // MÓJ WERSET DNIA
+  const zSub       = isLandscape ? 0.93 : isTall ? 0.93 : 0.92;  // Christian Culture
 
-  // 6. Verse Text (Dynamic sizing & automatic line wrapping with auto-calibration)
-  // In 16:9 landscape, 1:1 square, and 4:5 portrait, give generous horizontal column width for natural breathing
-  const maxTextWidth = (isLandscape || isSquare || isPortrait) ? Math.round(width * 0.78) : Math.round(width * 0.72);
+  const verseSepLineY = height * zVerseSep;
+  const refY          = height * zRef;
+  const transY        = height * zTrans;
+  const footerSepLineY = height * zFooterSep;
+  const footerTitleY  = height * zTitle;
+  const footerSubY    = height * zSub;
 
+  // === FONT SIZES ===
+  const refFontSize     = isLandscape ? Math.round(height * 0.032) : Math.round(height * 0.030);
+  const transFontSize   = isLandscape ? Math.round(height * 0.021) : Math.round(height * 0.019);
+  const footerTitleSize = isLandscape ? Math.round(height * 0.026) : Math.round(height * 0.024);
+  const footerSubSize   = isLandscape ? Math.round(height * 0.020) : Math.round(height * 0.019);
+
+  // === VERSE AREA: from quote mark bottom to verse separator line ===
+  const quoteMarkBottom = quoteY + quoteFontSize * 0.5;
+  const verseAreaTop    = quoteMarkBottom + 20;
+  const verseAreaBottom = verseSepLineY - 24;  // guaranteed gap above separator
+  const verseAvailH     = Math.max(100, verseAreaBottom - verseAreaTop);
+
+  const maxTextWidth = isLandscape ? Math.round(width * 0.80) : isSquare ? Math.round(width * 0.82) : isPortrait ? Math.round(width * 0.80) : Math.round(width * 0.76);
+
+  // === VERSE AUTO-SIZING: shrink until text fits in verseAvailH ===
   const charCount = verse.text.length;
   let targetFontSize: number;
   if (isLandscape) {
-    // 16:9 landscape height-calibrated typography
-    if (charCount > 200) {
-      targetFontSize = Math.round(height * 0.036);
-    } else if (charCount > 140) {
-      targetFontSize = Math.round(height * 0.042);
-    } else if (charCount > 80) {
-      targetFontSize = Math.round(height * 0.048);
-    } else {
-      targetFontSize = Math.round(height * 0.055);
-    }
+    targetFontSize = charCount > 200 ? Math.round(height * 0.036) : charCount > 140 ? Math.round(height * 0.042) : charCount > 80 ? Math.round(height * 0.048) : Math.round(height * 0.055);
   } else if (isSquare) {
-    // 1:1 square height & width calibrated typography (1080x1080)
-    if (charCount > 200) {
-      targetFontSize = Math.round(width * 0.035);
-    } else if (charCount > 140) {
-      targetFontSize = Math.round(width * 0.040);
-    } else if (charCount > 80) {
-      targetFontSize = Math.round(width * 0.045);
-    } else if (charCount < 50) {
-      targetFontSize = Math.round(width * 0.055);
-    } else {
-      targetFontSize = Math.round(width * 0.049);
-    }
+    targetFontSize = charCount > 200 ? Math.round(width * 0.034) : charCount > 140 ? Math.round(width * 0.038) : charCount > 80 ? Math.round(width * 0.044) : charCount < 50 ? Math.round(width * 0.054) : Math.round(width * 0.048);
   } else if (isPortrait) {
-    // 4:5 portrait calibrated typography (1080x1350)
-    if (charCount > 200) {
-      targetFontSize = Math.round(width * 0.035);
-    } else if (charCount > 140) {
-      targetFontSize = Math.round(width * 0.040);
-    } else if (charCount > 80) {
-      targetFontSize = Math.round(width * 0.045);
-    } else if (charCount < 50) {
-      targetFontSize = Math.round(width * 0.056);
-    } else {
-      targetFontSize = Math.round(width * 0.049);
-    }
+    targetFontSize = charCount > 200 ? Math.round(width * 0.034) : charCount > 140 ? Math.round(width * 0.038) : charCount > 80 ? Math.round(width * 0.044) : charCount < 50 ? Math.round(width * 0.054) : Math.round(width * 0.048);
   } else {
-    // Portrait / Vertical 9:16 scaling
-    if (charCount > 180) {
-      targetFontSize = Math.round(width * 0.038);
-    } else if (charCount > 120) {
-      targetFontSize = Math.round(width * 0.044);
-    } else if (charCount < 60) {
-      targetFontSize = Math.round(width * 0.062);
-    } else {
-      targetFontSize = Math.round(width * 0.052);
-    }
+    targetFontSize = charCount > 180 ? Math.round(width * 0.038) : charCount > 120 ? Math.round(width * 0.044) : charCount < 60 ? Math.round(width * 0.062) : Math.round(width * 0.052);
   }
 
-  // Reference elements dimensions
-  const refFontSize = (isLandscape || isSquare || isPortrait) ? Math.round(height * 0.030) : Math.round(width * 0.036);
-  const transFontSize = (isLandscape || isSquare || isPortrait) ? Math.round(height * 0.019) : Math.round(width * 0.022);
-  const refGap = (isLandscape || isSquare) ? Math.round(height * 0.042) : isPortrait ? Math.round(height * 0.050) : (isTall ? Math.round(height * 0.08) : Math.round(height * 0.07));
-  const refBlockExtra = refGap + refFontSize + (transFontSize * 1.8);
-
-  // Auto-calibrating loop: decrease font size step-by-step until the whole block fits with elegance
+  const minFontSize = 20;
   let fontSize = targetFontSize;
   let lines: string[] = [];
-  let lineHeight = fontSize * (isLandscape ? 1.42 : isSquare ? 1.45 : isPortrait ? 1.46 : 1.5);
-  let totalTextHeight = 0;
-  let totalBlockHeight = 0;
-  const minFontSize = (isLandscape || isSquare || isPortrait) ? 24 : 26;
+  let lineHeight = fontSize * 1.46;
 
   while (fontSize >= minFontSize) {
     ctx.font = `500 ${fontSize}px "Cormorant Garamond", Georgia, serif`;
-    lines = wrapText(ctx, `„${verse.text}”`, maxTextWidth);
-    lineHeight = fontSize * (isLandscape ? 1.42 : isSquare ? 1.45 : isPortrait ? 1.46 : 1.5);
-    totalTextHeight = lines.length * lineHeight;
-    totalBlockHeight = totalTextHeight + refBlockExtra;
-
-    if (totalBlockHeight <= availableHeight * 0.94) {
-      break;
-    }
+    lines = wrapText(ctx, `\u201E${verse.text}\u201D`, maxTextWidth);
+    lineHeight = fontSize * (isLandscape ? 1.42 : 1.46);
+    if (lines.length * lineHeight <= verseAvailH) break;
     fontSize -= 2;
   }
 
-  // Exact vertical optical centering inside available space
-  const blockCenterY = (contentTop + contentBottom) / 2;
-  const blockStartY = blockCenterY - totalBlockHeight / 2;
-  const verseStartY = blockStartY + lineHeight / 2;
+  // Center verse block in its zone
+  const totalVerseH = lines.length * lineHeight;
+  const verseBlockMid = (verseAreaTop + verseAreaBottom) / 2;
+  const verseStartY = verseBlockMid - totalVerseH / 2 + lineHeight / 2;
 
-  // Render verse text
+  // === DRAW: Verse text ===
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
+  ctx.shadowBlur = 10;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 2;
   ctx.font = `500 ${fontSize}px "Cormorant Garamond", Georgia, serif`;
   ctx.fillStyle = '#ffffff';
-
-  // Drop shadow for text depth
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
-  ctx.shadowBlur = 18;
-  ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 4;
-
   for (let i = 0; i < lines.length; i++) {
     ctx.fillText(lines[i], width / 2, verseStartY + i * lineHeight);
   }
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
 
-  // Reset shadow
+  // === DRAW: Verse → Ref separator line (short gold) at 63% ===
+  const verseSepW = Math.round(isLandscape ? width * 0.10 : width * 0.12);
+  ctx.strokeStyle = 'rgba(223, 184, 114, 0.75)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(width / 2 - verseSepW / 2, verseSepLineY);
+  ctx.lineTo(width / 2 + verseSepW / 2, verseSepLineY);
+  ctx.stroke();
+
+  // === DRAW: PSALM X:Y reference at 68% ===
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetY = 1;
+  ctx.font = `700 ${refFontSize}px "Plus Jakarta Sans", system-ui, sans-serif`;
+  ctx.fillStyle = '#e8cb93';
+  fillTextLetterSpaced(ctx, verse.reference.toUpperCase(), width / 2, refY, 2);
   ctx.shadowBlur = 0;
   ctx.shadowOffsetY = 0;
 
-  // 7. Reference (e.g. Psalm 23:1)
-  const lastLineY = verseStartY + (lines.length - 1) * lineHeight;
-  const refY = lastLineY + refGap;
-
-  // Delicate decorative separator line
-  const sepWidth = Math.round((isLandscape || isSquare || isPortrait) ? width * 0.13 : width * 0.16);
-  const sepGap = (isLandscape || isSquare || isPortrait) ? 18 : (isTall ? 32 : 24);
-  ctx.strokeStyle = 'rgba(223, 184, 114, 0.45)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(width / 2 - sepWidth / 2, refY - sepGap);
-  ctx.lineTo(width / 2 + sepWidth / 2, refY - sepGap);
-  ctx.stroke();
-
-  // Book & verse reference
-  ctx.font = `700 ${refFontSize}px "Plus Jakarta Sans", system-ui, sans-serif`;
-  ctx.fillStyle = '#e8cb93'; // Delicate luminous champagne gold
-  ctx.fillText(verse.reference.toUpperCase(), width / 2, refY);
-
-  // Translation name
+  // === DRAW: Biblia Warszawska at 74% ===
   ctx.font = `400 ${transFontSize}px "Plus Jakarta Sans", system-ui, sans-serif`;
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
-  ctx.fillText(verse.translation, width / 2, refY + transFontSize * 1.8);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.60)';
+  ctx.fillText(verse.translation, width / 2, transY);
 
-  // 8. MANDATORY BAKED-IN FOOTER WATERMARK
-  // As requested in specification Section 4:
-  // "Stopka musi być integralną częścią wygenerowanej grafiki, a nie elementem HTML nałożonym wyłącznie w przeglądarce.
-  // Mój Werset Dnia
-  // Christian Culture | polskieradio.cc"
-
-  // Subtle separator line above footer
-  const footerSepW = Math.round((isLandscape || isSquare || isPortrait) ? width * 0.38 : width * 0.45);
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+  // === DRAW: Footer separator line (wide) at 80% ===
+  const footerSepW = Math.round(isLandscape ? width * 0.38 : width * 0.38);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(width / 2 - footerSepW / 2, footerSepY);
-  ctx.lineTo(width / 2 + footerSepW / 2, footerSepY);
+  ctx.moveTo(width / 2 - footerSepW / 2, footerSepLineY);
+  ctx.lineTo(width / 2 + footerSepW / 2, footerSepLineY);
   ctx.stroke();
 
-  // Footer Title: "MÓJ WERSET DNIA"
-  const footerTitleSize = (isLandscape || isSquare || isPortrait) ? Math.round(height * 0.024) : Math.round(width * 0.026);
+  // === DRAW: Footer "MÓJ WERSET DNIA" ===
   ctx.font = `700 ${footerTitleSize}px "Plus Jakarta Sans", system-ui, sans-serif`;
   ctx.fillStyle = '#ffffff';
-  ctx.fillText('MÓJ WERSET DNIA', width / 2, footerY - 4);
+  ctx.fillText('MÓJ WERSET DNIA', width / 2, footerTitleY);
 
-  // Footer Subtitle: "Christian Culture | polskieradio.cc"
-  const footerSubSize = (isLandscape || isSquare || isPortrait) ? Math.round(height * 0.019) : Math.round(width * 0.021);
+  // === DRAW: Footer "Christian Culture | polskieradio.cc" ===
   ctx.font = `500 ${footerSubSize}px "Plus Jakarta Sans", system-ui, sans-serif`;
-  ctx.fillStyle = 'rgba(223, 184, 114, 0.85)'; // Warm champagne gold brand accent
-  ctx.fillText('Christian Culture | polskieradio.cc', width / 2, footerY + footerSubSize * 1.5);
+  ctx.fillStyle = 'rgba(223, 184, 114, 0.85)';
+  ctx.fillText('Christian Culture | polskieradio.cc', width / 2, footerSubY);
 
   // Convert canvas to Blob & File
   const dataUrl = canvas.toDataURL('image/png', 0.95);
+  // Lightweight JPEG for Firestore post document to guarantee it never exceeds 1MB limit
+  const webOptimizedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
@@ -413,6 +463,7 @@ export async function renderVerseCardToCanvas({
         file,
         width,
         height,
+        webOptimizedDataUrl,
       });
     }, 'image/png', 0.95);
   });

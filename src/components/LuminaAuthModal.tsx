@@ -53,12 +53,20 @@ export const LuminaAuthModal: React.FC<LuminaAuthModalProps> = ({
       onClose();
     } catch (err: unknown) {
       console.error('Google Sign In Error:', err);
-      const errMsg =
-        err instanceof Error
-          ? err.message.includes('popup-closed-by-user')
-            ? 'Logowanie zostało anulowane.'
-            : 'Błąd logowania przez Google. Spróbuj ponownie.'
-          : 'Wystąpił błąd podczas logowania.';
+      const code = (err as { code?: string })?.code ?? '';
+      let errMsg = 'Błąd logowania przez Google. Spróbuj ponownie.';
+      if (code === 'auth/popup-closed-by-user' || (err instanceof Error && err.message.includes('popup-closed-by-user'))) {
+        errMsg = 'Logowanie zostało anulowane.';
+      } else if (code === 'auth/unauthorized-domain') {
+        errMsg = 'Domena nie jest autoryzowana w Firebase. Skontaktuj się z administratorem.';
+        console.error('[LUMINA AUTH] Dodaj werset-dnia.polskieradio.cc do Authorized Domains w Firebase Console → lumina-cc → Authentication → Settings');
+      } else if (code === 'auth/popup-blocked') {
+        errMsg = 'Przeglądarka zablokowała okno logowania. Zezwól na wyskakujące okna i spróbuj ponownie.';
+      } else if (code === 'auth/network-request-failed') {
+        errMsg = 'Brak połączenia z internetem. Sprawdź sieć i spróbuj ponownie.';
+      } else if (code) {
+        errMsg = `Błąd logowania (${code}). Spróbuj ponownie.`;
+      }
       setError(errMsg);
     } finally {
       setIsGoogleLoading(false);
