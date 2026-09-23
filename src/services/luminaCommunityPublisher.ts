@@ -87,6 +87,10 @@ export async function publishVerseToLuminaCommunity({
       authorUid: authorUid,
       likes: 1,
       amen: 1,
+      _isVerseCard: true,
+      _isFreshSpotlight: true,
+      _isNewlyPublished: true,
+      priority: 9999,
       time: 'Przed chwilą • 📖 Mój Werset Dnia',
       createdAtTimestamp: Date.now(),
       createdAtDateStr: new Date().toISOString(),
@@ -197,8 +201,8 @@ export async function publishVerseToLuminaCommunity({
       cardDataUrl: card.dataUrl,
       authorSlug,
       authorName,
-      feedUrl: 'https://polskieradio.cc/tablica',
-      profileUrl: `https://polskieradio.cc/lumina-profile.html?u=${authorSlug}`,
+      feedUrl: `https://polskieradio.cc/tablica?post=${postId}`,
+      profileUrl: `https://polskieradio.cc/lumina-profile.html?u=${encodeURIComponent(authorSlug)}&post=${postId}`,
     };
   } catch (err: any) {
     console.error('Błąd publikacji w LUMINA:', err);
