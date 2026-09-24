@@ -101,11 +101,23 @@ export function getMojaBibliaBookId(bookOrShort: string): string {
 export function getMojaBibliaStudyUrl(verse: BibleVerse): string {
   const bookId = getMojaBibliaBookId(verse.bookShort || verse.book);
   const chapter = verse.chapter || 1;
-  // W przypadku zakresów '1-2' lub '10,11' wyciągamy pierwszy numer wersetu
-  const vMatch = String(verse.verse || '').match(/\d+/);
-  const vNum = vMatch ? vMatch[0] : '1';
+  const vStr = String(verse.verse || '').trim();
+  const rangeMatch = vStr.match(/(\d+)\s*[-–—]\s*(\d+)/);
+  let vStart = '1';
+  let vEnd = '';
 
-  return `https://polskieradio.cc/mojabiblia?book=${bookId}&chapter=${chapter}&verse=${vNum}&mode=interlinear`;
+  if (rangeMatch) {
+    vStart = rangeMatch[1];
+    vEnd = rangeMatch[2];
+  } else {
+    const singleMatch = vStr.match(/\d+/);
+    vStart = singleMatch ? singleMatch[0] : '1';
+  }
+
+  const rangeParam = vEnd ? `&verse_end=${vEnd}&range=${vStart}-${vEnd}` : '';
+  const slugParam = verse.slug ? `&slug=${encodeURIComponent(verse.slug)}` : '';
+
+  return `https://polskieradio.cc/mojabiblia?book=${bookId}&ch=${chapter}&chapter=${chapter}&v=${vStart}&verse=${vStart}${rangeParam}&mode=interlinear&from=werset-dnia${slugParam}#verse-${vStart}`;
 }
 
 /**
@@ -117,21 +129,23 @@ export function getMojaBibliaSearchUrl(query: string): string {
 }
 
 /**
- * Inteligentnie parsuje zapytanie użytkownika (np. "Psalm 23:1", "Jan 3:16", "nadzieja")
+ * Inteligentnie parsuje zapytanie użytkownika (np. "Psalm 23:1", "Przypowieści 3:5-6", "Jan 3:16", "nadzieja")
  * i generuje bezpośredni odnośnik do wersetu lub wyszukiwania w MojaBiblia.
  */
 export function parseQueryToMojaBibliaUrl(query: string): string {
   const clean = query.trim();
   if (!clean) return 'https://polskieradio.cc/mojabiblia';
 
-  // Rozpoznawanie wzorca referencji biblijnej np. "Psalm 23:1", "Ps 23, 1", "Jan 3:16", "1 Kor 13:4", "Rz 8"
-  const refMatch = clean.match(/^([1-3]?\s*[a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ]+)\s+(\d+)[:,\s]*(\d+)?/i);
+  // Rozpoznawanie wzorca referencji biblijnej np. "Psalm 23:1-3", "Przypowieści 3:5-6", "Ps 23, 1", "Jan 3:16", "1 Kor 13:4", "Rz 8"
+  const refMatch = clean.match(/^([1-3]?\s*[a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ]+)\s+(\d+)[:,\s]*(\d+)?(?:\s*[-–—]\s*(\d+))?/i);
   if (refMatch) {
     const rawBook = refMatch[1].trim();
     const chapter = refMatch[2];
-    const verse = refMatch[3] || '1';
+    const vStart = refMatch[3] || '1';
+    const vEnd = refMatch[4] || '';
     const bookId = getMojaBibliaBookId(rawBook);
-    return `https://polskieradio.cc/mojabiblia?book=${bookId}&chapter=${chapter}&verse=${verse}&mode=interlinear`;
+    const rangeParam = vEnd ? `&verse_end=${vEnd}&range=${vStart}-${vEnd}` : '';
+    return `https://polskieradio.cc/mojabiblia?book=${bookId}&ch=${chapter}&chapter=${chapter}&v=${vStart}&verse=${vStart}${rangeParam}&mode=interlinear&from=werset-dnia#verse-${vStart}`;
   }
 
   return getMojaBibliaSearchUrl(clean);
