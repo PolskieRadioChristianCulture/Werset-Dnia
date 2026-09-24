@@ -30,6 +30,7 @@ import { trackEvent } from '../utils/analytics';
 import { publishVerseToLuminaCommunity, PublishResult } from '../services/luminaCommunityPublisher';
 import { getStoredLuminaUser } from '../services/luminaAuth';
 import { LuminaPublishSuccessModal } from './LuminaPublishSuccessModal';
+import { getMojaBibliaStudyUrl } from '../utils/mojaBibliaHelper';
 
 interface VerseCardViewProps {
   verse: BibleVerse;
@@ -586,6 +587,38 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
           </motion.button>
         </div>
 
+        {/* Propozycja: Głębsze Studium w MojaBiblia (Oryginał, Strong, 4 Przekłady) */}
+        <motion.a
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
+          href={getMojaBibliaStudyUrl(verse)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-[#dfb872]/10 to-amber-500/15 hover:from-amber-500/25 hover:via-[#dfb872]/20 hover:to-amber-500/25 border border-[#dfb872]/45 hover:border-[#dfb872] text-[#f3dfb8] hover:text-white transition-all cursor-pointer shadow-lg group flex items-center justify-between gap-3"
+          title={`Zbadaj ${verse.reference} w MojaBiblia: tekst interlinearny, greka/hebrajski, kody Stronga i 4 przekłady (UBG, BW, BT, BG)`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-[#dfb872]/20 border border-[#dfb872]/30 flex items-center justify-center text-[#dfb872] group-hover:scale-105 transition-transform shrink-0">
+              <BookOpen className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col text-left min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-white text-xs sm:text-sm">Głębsze Studium: {verse.reference}</span>
+                <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-[#dfb872]/20 text-[#f3dfb8] border border-[#dfb872]/30">
+                  MojaBiblia
+                </span>
+              </div>
+              <span className="text-[10px] sm:text-[11px] text-white/60 group-hover:text-white/80 font-normal truncate">
+                Oryginał interlinearny · Kody Stronga · 4 przekłady (UBG, BW, BT, BG)
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-[#dfb872] group-hover:text-[#f3dfb8] shrink-0 font-medium">
+            <span className="hidden sm:inline">Zbadaj werset</span>
+            <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+          </div>
+        </motion.a>
+
         {/* Quick Utility Tools Row: [ Kopiuj tekst ] [ Kopiuj link ] [ YouTube ] [ Powiadomienia ] */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-1 px-1">
           <div className="flex items-center gap-2">
@@ -729,6 +762,36 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
                 <span className="text-[#eed7a1] font-medium capitalize">{verse.category}</span>
               )}
             </div>
+          </div>
+        </section>
+
+        {/* Głębsze Studium w MojaBiblia (Oryginał i 4 przekłady) */}
+        <section aria-labelledby="deep-study-heading" className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-[#1a1711] via-[#101319] to-[#0d1017] border border-[#dfb872]/40 shadow-xl space-y-3.5">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 text-xs font-semibold text-[#f3dfb8] uppercase tracking-wider">
+              <BookOpen className="w-4 h-4 text-[#dfb872]" />
+              <h2 id="deep-study-heading">Głębsze Studium Słowa — MojaBiblia</h2>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#dfb872]/15 text-[#eed7a1] border border-[#dfb872]/30 font-medium">
+              Interlinear · Kody Stronga · 4 Przekłady
+            </span>
+          </div>
+
+          <p className="text-xs sm:text-sm text-white/75 leading-relaxed font-light">
+            Chcesz poznać pierwotny sens wersetu <strong className="text-white font-medium">{verse.reference}</strong>? W serwisie MojaBiblia możesz zbadać oryginalny tekst biblijny w języku hebrajskim lub greckim, sprawdzić kody Stronga i analizę morfologiczną słowo po słowie, a także porównać 4 przekłady równoległe: <span className="text-[#f3dfb8] font-medium">UBG (Uwspółcześniona Biblia Gdańska), BW (Biblia Warszawska), BT (Biblia Tysiąclecia) i BG (Biblia Gdańska)</span>.
+          </p>
+
+          <div className="pt-2 border-t border-white/5 flex items-center justify-between flex-wrap gap-3">
+            <span className="text-[11px] text-white/40">polskieradio.cc/mojabiblia</span>
+            <a
+              href={getMojaBibliaStudyUrl(verse)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#dfb872] to-[#c79b50] hover:from-[#e5c283] hover:to-[#d4af65] text-neutral-950 font-bold text-xs shadow-md hover:shadow-amber-500/20 transition-all cursor-pointer"
+            >
+              <span>Otwórz {verse.reference} w MojaBiblia</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
           </div>
         </section>
 

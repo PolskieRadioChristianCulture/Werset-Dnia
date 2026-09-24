@@ -4,6 +4,7 @@ import { Search, Dices, X, ArrowRight, Flame, Bell, BellRing, BookOpen, Compass,
 import { searchBibleVerses } from '../data/verses';
 import { BibleVerse } from '../types';
 import { trackEvent } from '../utils/analytics';
+import { getMojaBibliaStudyUrl, parseQueryToMojaBibliaUrl } from '../utils/mojaBibliaHelper';
 
 interface SearchHeroProps {
   onSelectVerse: (verse: BibleVerse) => void;
@@ -261,9 +262,22 @@ export const SearchHero: React.FC<SearchHeroProps> = ({
                           <span className="text-sm font-semibold text-[#e8cb93] group-hover:text-[#f7e6c4]">
                             {v.reference}
                           </span>
-                          <span className="text-[10px] text-white/40 px-2 py-0.5 rounded bg-white/5">
-                            {v.translation}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-white/40 px-2 py-0.5 rounded bg-white/5">
+                              {v.translation}
+                            </span>
+                            <a
+                              href={getMojaBibliaStudyUrl(v)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-[10px] text-[#dfb872]/80 hover:text-[#dfb872] px-2 py-0.5 rounded bg-[#dfb872]/10 hover:bg-[#dfb872]/20 border border-[#dfb872]/30 inline-flex items-center gap-1 transition-colors"
+                              title={`Głębsze Studium ${v.reference} w MojaBiblia`}
+                            >
+                              <BookOpen className="w-2.5 h-2.5" />
+                              <span>Studium</span>
+                            </a>
+                          </div>
                         </div>
                         <p className="text-xs text-white/70 line-clamp-1 mt-1 font-cormorant italic text-base">
                           „{v.text}”
@@ -273,12 +287,38 @@ export const SearchHero: React.FC<SearchHeroProps> = ({
                   ))}
                 </ul>
 
+                {/* Inteligentna propozycja: Głębsze Studium w MojaBiblia */}
+                <a
+                  href={suggestions[0] ? getMojaBibliaStudyUrl(suggestions[0]) : parseQueryToMojaBibliaUrl(query)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full px-4 py-2.5 bg-gradient-to-r from-amber-950/40 via-[#191612] to-[#121620] hover:from-amber-900/40 border-t border-amber-500/25 transition-all flex items-center justify-between group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-[#dfb872] group-hover:scale-105 transition-transform shrink-0">
+                      <BookOpen className="w-4 h-4" />
+                    </div>
+                    <div className="flex flex-col min-w-0 text-left">
+                      <span className="text-xs font-semibold text-[#f3dfb8] group-hover:text-white truncate">
+                        Głębsze Studium: {suggestions[0] ? `zbadaj ${suggestions[0].reference}` : `zbadaj «${query}»`} w MojaBiblia
+                      </span>
+                      <span className="text-[10px] text-white/50 truncate">
+                        Oryginał interlinearny · Kody Stronga · 4 przekłady (UBG, BW, BT, BG)
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-[11px] text-[#dfb872] group-hover:text-white shrink-0 font-medium ml-2">
+                    <span className="hidden sm:inline">MojaBiblia</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </div>
+                </a>
+
                 {/* Thematic YouTube channel recommendation item */}
                 <a
                   href={`https://youtube.com/@wersetdnia_chsb?si=KSamoERrUAtHFL96`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full px-4 py-2.5 bg-gradient-to-r from-red-950/40 via-[#181b24] to-[#121620] hover:from-red-900/40 border-t border-red-500/20 transition-all flex items-center justify-between group cursor-pointer"
+                  className="w-full px-4 py-2.5 bg-gradient-to-r from-red-950/40 via-[#181b24] to-[#121620] hover:from-red-900/40 border-t border-white/5 transition-all flex items-center justify-between group cursor-pointer"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="w-7 h-7 rounded-lg bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-400 group-hover:scale-105 transition-transform shrink-0">
@@ -332,8 +372,24 @@ export const SearchHero: React.FC<SearchHeroProps> = ({
               transition={{ duration: 0.35, ease: 'easeInOut' }}
               className="w-full flex flex-col items-center overflow-hidden pt-5"
             >
-              {/* Rekomendacja wideo kanału YouTube @wersetdnia_chsb wewnątrz "Dzisiaj potrzebuję:" */}
-              <div className="mb-4">
+              {/* Rekomendacje: MojaBiblia i YouTube wewnątrz "Dzisiaj potrzebuję:" */}
+              <div className="mb-4 flex flex-wrap items-center justify-center gap-2.5">
+                <a
+                  href="https://polskieradio.cc/mojabiblia"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-950/40 via-amber-900/25 to-amber-950/40 hover:from-amber-900/50 hover:via-amber-800/40 hover:to-amber-900/50 border border-amber-500/30 hover:border-amber-500/60 text-xs text-white/90 hover:text-white transition-all shadow-md cursor-pointer"
+                  title="Głębsze studium Pisma Świętego w serwisie MojaBiblia (tekst oryginalny, Strong, 4 przekłady)"
+                >
+                  <div className="w-4.5 h-4.5 rounded-full bg-[#dfb872] flex items-center justify-center text-neutral-950 shrink-0 shadow-sm">
+                    <BookOpen className="w-2.5 h-2.5" />
+                  </div>
+                  <span>
+                    Głębsze Studium: <strong className="text-[#f3dfb8] font-semibold group-hover:text-white">MojaBiblia (Oryginał & 4 Przekłady)</strong>
+                  </span>
+                  <ExternalLink className="w-3.5 h-3.5 text-white/40 group-hover:text-white shrink-0 ml-0.5" />
+                </a>
+
                 <a
                   href="https://youtube.com/@wersetdnia_chsb?si=KSamoERrUAtHFL96"
                   target="_blank"
@@ -345,7 +401,7 @@ export const SearchHero: React.FC<SearchHeroProps> = ({
                     <Play className="w-2.5 h-2.5 fill-current ml-0.5" />
                   </div>
                   <span>
-                    Wideo rozważania tematyczne na kanale <strong className="text-red-300 font-semibold group-hover:text-red-200">YouTube @wersetdnia_chsb</strong>
+                    Wideo rozważania: <strong className="text-red-300 font-semibold group-hover:text-red-200">YouTube @wersetdnia_chsb</strong>
                   </span>
                   <ExternalLink className="w-3.5 h-3.5 text-white/40 group-hover:text-white shrink-0 ml-0.5" />
                 </a>
