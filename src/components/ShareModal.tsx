@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { BibleVerse, BackgroundTheme } from '../types';
 import { GeneratedCardResult, downloadCardImage, renderVerseCardToCanvas } from '../utils/canvasGenerator';
-import { getSocialShareLinks, getVerseShareUrl, getShareMessageText, copyToClipboard } from '../utils/shareUtils';
+import { getSocialShareLinks, getVerseShareUrl, getShareMessageText, copyToClipboard, copyImageToClipboard } from '../utils/shareUtils';
 import { trackEvent } from '../utils/analytics';
 
 // Dedykowane wektorowe ikony mediów społecznościowych
@@ -80,6 +80,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 }) => {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
+  const [copiedGraphic, setCopiedGraphic] = useState(false);
+  const [noticeMsg, setNoticeMsg] = useState<string | null>(null);
   const [downloadedNotice, setDownloadedNotice] = useState(false);
   const [storiesNotice, setStoriesNotice] = useState(false);
   const [isPreparingStories, setIsPreparingStories] = useState(false);
@@ -93,7 +95,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     const ok = await copyToClipboard(shareUrl);
     if (ok) {
       setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2400);
+      setNoticeMsg('Link do wersetu został skopiowany do schowka!');
+      setTimeout(() => {
+        setCopiedLink(false);
+        setNoticeMsg(null);
+      }, 3000);
     }
   };
 
@@ -102,8 +108,39 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     const ok = await copyToClipboard(fullShareText);
     if (ok) {
       setCopiedText(true);
-      setTimeout(() => setCopiedText(false), 2400);
+      setNoticeMsg('Treść wersetu i link zostały skopiowane do schowka!');
+      setTimeout(() => {
+        setCopiedText(false);
+        setNoticeMsg(null);
+      }, 3500);
     }
+  };
+
+  const handleCopyGraphic = async () => {
+    if (cardResult?.blob) {
+      trackEvent('share_clicked', { method: 'copy_graphic', verse_id: verse.id });
+      const ok = await copyImageToClipboard(cardResult.blob);
+      if (ok) {
+        setCopiedGraphic(true);
+        setNoticeMsg('✨ Grafika wersetu została skopiowana do schowka! W oknie posta na Facebooku wciśnij Ctrl+V (Wklej), aby wstawić obraz.');
+        setTimeout(() => {
+          setCopiedGraphic(false);
+          setNoticeMsg(null);
+        }, 5500);
+      } else {
+        // Fallback: pobierz grafikę
+        handleDownload();
+      }
+    }
+  };
+
+  const handleOpenSocialShare = async (platformName: string, targetUrl: string) => {
+    trackEvent('share_clicked', { method: platformName.toLowerCase(), verse_id: verse.id });
+    // Zawsze kopiujemy treść wersetu do schowka, aby użytkownik mógł od razu wkleić w oknie posta
+    await copyToClipboard(fullShareText);
+    setNoticeMsg(`📋 Treść wersetu skopiowana do schowka! W oknie ${platformName} wklej (Ctrl+V lub Wklej).`);
+    setTimeout(() => setNoticeMsg(null), 5000);
+    window.open(targetUrl, '_blank', 'noopener,noreferrer');
   };
 
   const handleDownload = () => {
@@ -112,7 +149,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       const filename = `moj-werset-dnia-${verse.slug}.png`;
       downloadCardImage(cardResult.blob, filename);
       setDownloadedNotice(true);
-      setTimeout(() => setDownloadedNotice(false), 3500);
+      setNoticeMsg('Plik graficzny PNG został pobrany na dysk!');
+      setTimeout(() => {
+        setDownloadedNotice(false);
+        setNoticeMsg(null);
+      }, 3500);
     }
   };
 
@@ -218,22 +259,47 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             <div className="flex-1 overflow-y-auto pr-1 no-scrollbar my-4 space-y-4">
               {/* Card Preview Thumbnail */}
               {cardResult?.dataUrl && (
-                <div className="flex items-center justify-center bg-black/50 rounded-2xl p-2.5 border border-white/8 relative group">
+                <div className="flex flex-col items-center bg-black/50 rounded-2xl p-3 border border-white/8 relative group space-y-2.5">
                   <img
                     src={cardResult.dataUrl}
                     alt="Podgląd wygenerowanej grafiki wersetu"
                     className="max-h-44 sm:max-h-48 rounded-xl object-contain shadow-2xl border border-white/10"
                   />
-                  <div className="absolute bottom-4 right-4 flex items-center gap-1.5">
+                  {/* Trzy szybkie akcje dla grafiki */}
+                  <div className="flex flex-wrap items-center justify-center gap-2 w-full pt-1">
+                    <button
+                      onClick={handleCopyGraphic}
+                      className="px-3 py-1.5 rounded-full bg-[#dfb872]/20 hover:bg-[#dfb872]/30 text-[#f3dfb8] hover:text-white text-xs font-semibold border border-[#dfb872]/50 flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                      title="Skopiuj wygenerowaną grafikę do schowka, aby wkleić (Ctrl+V) w oknie posta"
+                    >
+                      {copiedGraphic ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5 text-[#dfb872]" />}
+                      <span>{copiedGraphic ? 'Grafika skopiowana!' : 'Kopiuj grafikę (Ctrl+V w poście)'}</span>
+                    </button>
                     <button
                       onClick={handleDownload}
-                      className="px-2.5 py-1 rounded-full bg-black/80 hover:bg-black text-[#f3dfb8] hover:text-white text-[11px] font-semibold border border-white/15 flex items-center gap-1 shadow-lg transition-all cursor-pointer backdrop-blur-md"
-                      title="Pobierz ten plik graficzny"
+                      className="px-3 py-1.5 rounded-full bg-black/70 hover:bg-black text-[#f3dfb8] hover:text-white text-xs font-semibold border border-white/15 flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                      title="Pobierz ten plik graficzny na dysk"
                     >
-                      <Download className="w-3 h-3 text-[#dfb872]" />
+                      <Download className="w-3.5 h-3.5 text-[#dfb872]" />
                       <span>Pobierz PNG</span>
                     </button>
+                    <button
+                      onClick={handleCopyFullText}
+                      className="px-3 py-1.5 rounded-full bg-black/70 hover:bg-black text-[#f3dfb8] hover:text-white text-xs font-semibold border border-white/15 flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                      title="Skopiuj cały tekst wersetu wraz z odnośnikiem"
+                    >
+                      {copiedText ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5 text-[#dfb872]" />}
+                      <span>{copiedText ? 'Tekst skopiowany!' : 'Kopiuj tekst i link'}</span>
+                    </button>
                   </div>
+                </div>
+              )}
+
+              {/* Dynamiczny baner powiadomień */}
+              {noticeMsg && (
+                <div className="p-3 rounded-2xl bg-amber-500/15 border border-amber-400/40 text-amber-200 text-xs flex items-start gap-2.5 shadow-lg">
+                  <Sparkles className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+                  <span className="font-medium leading-relaxed">{noticeMsg}</span>
                 </div>
               )}
 
@@ -257,7 +323,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                     <Sparkles className="w-3 h-3 text-[#dfb872]" />
                     <span>Dedykowane media społecznościowe:</span>
                   </span>
-                  <span className="text-[10px] text-white/40">1-kliknięcie</span>
+                  <span className="text-[10px] text-white/40">Kopiuje treść i otwiera post</span>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
@@ -266,9 +332,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                     whileHover={{ scale: 1.03, y: -1 }}
                     whileTap={{ scale: 0.97 }}
                     href={socialLinks.whatsapp}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackEvent('share_clicked', { method: 'whatsapp', verse_id: verse.id })}
+                    onClick={(e) => { e.preventDefault(); handleOpenSocialShare('WhatsApp', socialLinks.whatsapp); }}
                     className="p-3 rounded-2xl bg-[#25D366]/10 hover:bg-[#25D366]/25 border border-[#25D366]/30 hover:border-[#25D366]/60 flex flex-col items-center justify-center text-center transition-all group cursor-pointer shadow-sm"
                     title="Udostępnij na WhatsApp (czat, grupa lub status)"
                   >
@@ -284,9 +348,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                     whileHover={{ scale: 1.03, y: -1 }}
                     whileTap={{ scale: 0.97 }}
                     href={socialLinks.facebook}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackEvent('share_clicked', { method: 'facebook', verse_id: verse.id })}
+                    onClick={(e) => { e.preventDefault(); handleOpenSocialShare('Facebook', socialLinks.facebook); }}
                     className="p-3 rounded-2xl bg-[#1877F2]/10 hover:bg-[#1877F2]/25 border border-[#1877F2]/30 hover:border-[#1877F2]/60 flex flex-col items-center justify-center text-center transition-all group cursor-pointer shadow-sm"
                     title="Udostępnij post na Facebooku"
                   >
@@ -302,9 +364,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                     whileHover={{ scale: 1.03, y: -1 }}
                     whileTap={{ scale: 0.97 }}
                     href={socialLinks.messenger}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackEvent('share_clicked', { method: 'messenger', verse_id: verse.id })}
+                    onClick={(e) => { e.preventDefault(); handleOpenSocialShare('Messenger', socialLinks.messenger); }}
                     className="p-3 rounded-2xl bg-[#0084FF]/10 hover:bg-[#0084FF]/25 border border-[#0084FF]/30 hover:border-[#0084FF]/60 flex flex-col items-center justify-center text-center transition-all group cursor-pointer shadow-sm"
                     title="Wyślij wiadomość przez Messenger"
                   >
@@ -320,9 +380,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                     whileHover={{ scale: 1.03, y: -1 }}
                     whileTap={{ scale: 0.97 }}
                     href={socialLinks.telegram}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackEvent('share_clicked', { method: 'telegram', verse_id: verse.id })}
+                    onClick={(e) => { e.preventDefault(); handleOpenSocialShare('Telegram', socialLinks.telegram); }}
                     className="p-3 rounded-2xl bg-[#229ED9]/10 hover:bg-[#229ED9]/25 border border-[#229ED9]/30 hover:border-[#229ED9]/60 flex flex-col items-center justify-center text-center transition-all group cursor-pointer shadow-sm"
                     title="Wyślij na Telegram (czat, kanał)"
                   >
@@ -338,9 +396,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                     whileHover={{ scale: 1.03, y: -1 }}
                     whileTap={{ scale: 0.97 }}
                     href={socialLinks.x}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackEvent('share_clicked', { method: 'x_twitter', verse_id: verse.id })}
+                    onClick={(e) => { e.preventDefault(); handleOpenSocialShare('X (Twitter)', socialLinks.x); }}
                     className="p-3 rounded-2xl bg-white/[0.05] hover:bg-white/[0.12] border border-white/12 hover:border-white/30 flex flex-col items-center justify-center text-center transition-all group cursor-pointer shadow-sm"
                     title="Opublikuj na 𝕏 (Twitter)"
                   >
@@ -356,9 +412,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                     whileHover={{ scale: 1.03, y: -1 }}
                     whileTap={{ scale: 0.97 }}
                     href={socialLinks.linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackEvent('share_clicked', { method: 'linkedin', verse_id: verse.id })}
+                    onClick={(e) => { e.preventDefault(); handleOpenSocialShare('LinkedIn', socialLinks.linkedin); }}
                     className="p-3 rounded-2xl bg-[#0A66C2]/10 hover:bg-[#0A66C2]/25 border border-[#0A66C2]/30 hover:border-[#0A66C2]/60 flex flex-col items-center justify-center text-center transition-all group cursor-pointer shadow-sm"
                     title="Udostępnij na LinkedIn"
                   >
@@ -374,9 +428,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                     whileHover={{ scale: 1.03, y: -1 }}
                     whileTap={{ scale: 0.97 }}
                     href={socialLinks.pinterest}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackEvent('share_clicked', { method: 'pinterest', verse_id: verse.id })}
+                    onClick={(e) => { e.preventDefault(); handleOpenSocialShare('Pinterest', socialLinks.pinterest); }}
                     className="p-3 rounded-2xl bg-[#E60023]/10 hover:bg-[#E60023]/25 border border-[#E60023]/30 hover:border-[#E60023]/60 flex flex-col items-center justify-center text-center transition-all group cursor-pointer shadow-sm"
                     title="Przypnij grafikę na tablicy Pinterest"
                   >
@@ -392,7 +444,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                     whileHover={{ scale: 1.03, y: -1 }}
                     whileTap={{ scale: 0.97 }}
                     href={socialLinks.sms}
-                    onClick={() => trackEvent('share_clicked', { method: 'sms', verse_id: verse.id })}
+                    onClick={(e) => { e.preventDefault(); handleOpenSocialShare('SMS', socialLinks.sms); }}
                     className="p-3 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/30 hover:border-emerald-500/60 flex flex-col items-center justify-center text-center transition-all group cursor-pointer shadow-sm"
                     title="Wyślij werset w wiadomości SMS"
                   >

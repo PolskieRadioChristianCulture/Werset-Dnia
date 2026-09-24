@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { BibleVerse, BackgroundTheme, AspectRatioFormat, LuminaUser } from '../types';
 import { FORMAT_OPTIONS, getFormatOption, renderVerseCardToCanvas, downloadCardImage, GeneratedCardResult } from '../utils/canvasGenerator';
-import { shareWithWebShareAPI, copyToClipboard, getVerseShareUrl, getSocialShareLinks } from '../utils/shareUtils';
+import { shareWithWebShareAPI, copyToClipboard, copyImageToClipboard, getVerseShareUrl, getSocialShareLinks, getShareMessageText } from '../utils/shareUtils';
 import { trackEvent } from '../utils/analytics';
 import { publishVerseToLuminaCommunity, PublishResult } from '../services/luminaCommunityPublisher';
 import { getStoredLuminaUser } from '../services/luminaAuth';
@@ -252,6 +252,20 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
       setCopiedText(true);
       setTimeout(() => setCopiedText(false), 2000);
     }
+  };
+
+  const handleQuickSocialShare = async (e: React.MouseEvent, platformName: string, targetUrl: string) => {
+    e.preventDefault();
+    trackEvent('share_clicked', { method: `${platformName.toLowerCase()}_strip`, verse_id: verse.id });
+    const shareUrl = getVerseShareUrl(verse, background.id);
+    const text = getShareMessageText(verse, shareUrl);
+    await copyToClipboard(text);
+    if (renderedCard?.blob) {
+      await copyImageToClipboard(renderedCard.blob);
+    }
+    setCopiedText(true);
+    setTimeout(() => setCopiedText(false), 2500);
+    window.open(targetUrl, '_blank', 'noopener,noreferrer');
   };
 
   // Aspect ratio styling container calculation
@@ -614,11 +628,9 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
             {/* WhatsApp */}
             <a
               href={socialLinks.whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackEvent('share_clicked', { method: 'whatsapp_strip', verse_id: verse.id })}
+              onClick={(e) => handleQuickSocialShare(e, 'WhatsApp', socialLinks.whatsapp)}
               className="w-8 h-8 rounded-xl bg-[#25D366]/15 hover:bg-[#25D366] text-[#25D366] hover:text-white border border-[#25D366]/30 flex items-center justify-center transition-all cursor-pointer shadow-sm group shrink-0"
-              title="Udostępnij na WhatsApp (czat, grupa)"
+              title="Udostępnij na WhatsApp (kopiuje treść i otwiera czat)"
             >
               <WhatsAppIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
             </a>
@@ -626,11 +638,9 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
             {/* Facebook */}
             <a
               href={socialLinks.facebook}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackEvent('share_clicked', { method: 'facebook_strip', verse_id: verse.id })}
+              onClick={(e) => handleQuickSocialShare(e, 'Facebook', socialLinks.facebook)}
               className="w-8 h-8 rounded-xl bg-[#1877F2]/15 hover:bg-[#1877F2] text-[#1877F2] hover:text-white border border-[#1877F2]/30 flex items-center justify-center transition-all cursor-pointer shadow-sm group shrink-0"
-              title="Udostępnij na Facebooku"
+              title="Udostępnij na Facebooku (kopiuje treść, w oknie posta wciśnij Ctrl+V)"
             >
               <FacebookIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
             </a>
@@ -638,9 +648,7 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
             {/* Messenger */}
             <a
               href={socialLinks.messenger}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackEvent('share_clicked', { method: 'messenger_strip', verse_id: verse.id })}
+              onClick={(e) => handleQuickSocialShare(e, 'Messenger', socialLinks.messenger)}
               className="w-8 h-8 rounded-xl bg-[#0084FF]/15 hover:bg-[#0084FF] text-[#0084FF] hover:text-white border border-[#0084FF]/30 flex items-center justify-center transition-all cursor-pointer shadow-sm group shrink-0"
               title="Wyślij przez Messenger"
             >
@@ -650,9 +658,7 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
             {/* Telegram */}
             <a
               href={socialLinks.telegram}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackEvent('share_clicked', { method: 'telegram_strip', verse_id: verse.id })}
+              onClick={(e) => handleQuickSocialShare(e, 'Telegram', socialLinks.telegram)}
               className="w-8 h-8 rounded-xl bg-[#229ED9]/15 hover:bg-[#229ED9] text-[#229ED9] hover:text-white border border-[#229ED9]/30 flex items-center justify-center transition-all cursor-pointer shadow-sm group shrink-0"
               title="Wyślij na Telegram"
             >
@@ -662,9 +668,7 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
             {/* X / Twitter */}
             <a
               href={socialLinks.x}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackEvent('share_clicked', { method: 'x_strip', verse_id: verse.id })}
+              onClick={(e) => handleQuickSocialShare(e, 'X', socialLinks.x)}
               className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white text-white hover:text-black border border-white/20 flex items-center justify-center transition-all cursor-pointer shadow-sm group shrink-0"
               title="Opublikuj na 𝕏"
             >

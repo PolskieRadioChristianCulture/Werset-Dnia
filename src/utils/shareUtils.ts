@@ -2,12 +2,9 @@ import { BibleVerse, BackgroundTheme } from '../types';
 import { trackEvent } from './analytics';
 
 export function getVerseShareUrl(verse: BibleVerse, bgId?: string): string {
-  if (typeof window === 'undefined') return `https://polskieradio.cc/w/${verse.slug}`;
+  if (typeof window === 'undefined') return `https://werset-dnia.polskieradio.cc/werset/${verse.slug}`;
   const origin = window.location.origin;
-  const params = new URLSearchParams();
-  params.set('w', verse.slug);
-  if (bgId) params.set('bg', bgId);
-  return `${origin}/#w/${verse.slug}${bgId ? `?bg=${bgId}` : ''}`;
+  return `${origin}/werset/${verse.slug}${bgId ? `?bg=${bgId}` : ''}`;
 }
 
 export function getShareMessageText(verse: BibleVerse, shareUrl: string): string {
@@ -63,7 +60,6 @@ export async function shareWithWebShareAPI({
       }
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        // User closed share sheet without completing, not a technical error
         return true;
       }
       console.warn('Native share failed or dismissed, opening fallback dialog', err);
@@ -91,8 +87,8 @@ export function getSocialShareLinks(verse: BibleVerse, bgId: string) {
     messenger: isMobile
       ? `fb-messenger://share?link=${encodedUrl}`
       : `https://www.facebook.com/dialog/send?link=${encodedUrl}&app_id=291494419107518&redirect_uri=${encodedUrl}`,
-    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`,
-    x: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`„${verse.text.slice(0, 180)}...” — ${verse.reference}`)}&url=${encodedUrl}&hashtags=WersetDnia,Biblia,ChristianCulture`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+    x: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`„${verse.text.slice(0, 160)}...” — ${verse.reference}`)}&url=${encodedUrl}&hashtags=WersetDnia,Biblia,ChristianCulture`,
     telegram: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
     linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
     pinterest: `https://pinterest.com/pin/create/button/?url=${encodedUrl}&description=${encodedText}`,
@@ -103,7 +99,6 @@ export function getSocialShareLinks(verse: BibleVerse, bgId: string) {
   };
 }
 
-
 /**
  * Copy text or link to clipboard safely
  */
@@ -113,7 +108,6 @@ export async function copyToClipboard(text: string): Promise<boolean> {
       await navigator.clipboard.writeText(text);
       return true;
     }
-    // Fallback
     const textarea = document.createElement('textarea');
     textarea.value = text;
     textarea.style.position = 'fixed';
@@ -125,6 +119,23 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     return success;
   } catch (err) {
     console.error('Failed to copy to clipboard', err);
+    return false;
+  }
+}
+
+/**
+ * Copy rendered PNG image blob to clipboard safely
+ */
+export async function copyImageToClipboard(blob: Blob): Promise<boolean> {
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+      const item = new ClipboardItem({ 'image/png': blob });
+      await navigator.clipboard.write([item]);
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.warn('Clipboard write image failed, falling back:', err);
     return false;
   }
 }
