@@ -25,12 +25,43 @@ import {
 } from 'lucide-react';
 import { BibleVerse, BackgroundTheme, AspectRatioFormat, LuminaUser } from '../types';
 import { FORMAT_OPTIONS, getFormatOption, renderVerseCardToCanvas, downloadCardImage, GeneratedCardResult } from '../utils/canvasGenerator';
-import { shareWithWebShareAPI, copyToClipboard, getVerseShareUrl } from '../utils/shareUtils';
+import { shareWithWebShareAPI, copyToClipboard, getVerseShareUrl, getSocialShareLinks } from '../utils/shareUtils';
 import { trackEvent } from '../utils/analytics';
 import { publishVerseToLuminaCommunity, PublishResult } from '../services/luminaCommunityPublisher';
 import { getStoredLuminaUser } from '../services/luminaAuth';
 import { LuminaPublishSuccessModal } from './LuminaPublishSuccessModal';
 import { getMojaBibliaStudyUrl } from '../utils/mojaBibliaHelper';
+
+// Ikony wektorowe dla paska szybkiego udostępniania
+const WhatsAppIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2zm0 18.06c-1.49 0-2.95-.4-4.22-1.15l-.3-.18-3.13.82.84-3.05-.2-.31a8.03 8.03 0 0 1-1.24-4.28c0-4.45 3.63-8.08 8.1-8.08 2.16 0 4.19.84 5.72 2.37 1.53 1.53 2.37 3.56 2.37 5.72 0 4.46-3.64 8.12-8.24 8.12zm4.49-6.07c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43s-.56-1.34-.76-1.84c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.66.31-.23.25-.88.86-.88 2.1 0 1.23.9 2.42 1.03 2.59.12.17 1.77 2.7 4.28 3.79.6.26 1.07.41 1.43.53.6.19 1.15.16 1.58.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.11-.22-.17-.47-.29z"/>
+  </svg>
+);
+
+const FacebookIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+  </svg>
+);
+
+const MessengerIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M12 2C6.48 2 2 6.13 2 11.23c0 2.9 1.46 5.48 3.74 7.12V22l3.47-1.91c.88.24 1.82.38 2.79.38 5.52 0 10-4.13 10-9.24C22 6.13 17.52 2 12 2zm1.09 12.44l-2.77-2.95-5.41 2.95 5.95-6.31 2.84 2.95 5.34-2.95-5.95 6.31z"/>
+  </svg>
+);
+
+const TelegramIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+  </svg>
+);
+
+const XTwitterIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+  </svg>
+);
 
 interface VerseCardViewProps {
   verse: BibleVerse;
@@ -183,42 +214,27 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
     }
   };
 
-  // Handle Share Action (requires LUMINA login per specification)
+  const socialLinks = getSocialShareLinks(verse, background.id);
+
+  // Handle Share Action - dedykowane, natychmiastowe udostępnianie na wszystkie popularne social media
   const handleShareClick = async () => {
     trackEvent('share_clicked', { verse_id: verse.id, format });
 
-    if (!isLoggedIn) {
-      onRequireLuminaAuth('share');
-      return;
-    }
-
     try {
-      setIsGenerating(true);
       let card = renderedCard;
       if (!card) {
+        setIsGenerating(true);
         card = await renderVerseCardToCanvas({ verse, background, format });
         setRenderedCard(card);
       }
-
-      // Try native Web Share API with card image file first
-      const shared = await shareWithWebShareAPI({
-        verse,
-        background,
-        cardFile: card.file,
-        onError: () => {
-          onOpenShareModal(card);
-        },
-      });
-
-      if (!shared) {
-        onOpenShareModal(card);
-      }
+      onOpenShareModal(card || undefined);
     } catch (e) {
       onOpenShareModal(renderedCard || undefined);
     } finally {
       setIsGenerating(false);
     }
   };
+
 
   const handleCopyLink = async () => {
     const url = getVerseShareUrl(verse, background.id);
@@ -586,6 +602,88 @@ export const VerseCardView: React.FC<VerseCardViewProps> = ({
             <span>Pobierz grafikę</span>
           </motion.button>
         </div>
+
+        {/* Pasek Szybkiego Dedykowanego Udostępniania (WhatsApp, FB, Messenger, Telegram, X, Więcej) */}
+        <div className="w-full py-2.5 px-3.5 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-between gap-2 shadow-sm">
+          <div className="flex items-center gap-1.5 text-xs text-white/60 font-medium shrink-0">
+            <Share2 className="w-3.5 h-3.5 text-[#dfb872]" />
+            <span className="hidden sm:inline">Udostępnij w:</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            {/* WhatsApp */}
+            <a
+              href={socialLinks.whatsapp}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackEvent('share_clicked', { method: 'whatsapp_strip', verse_id: verse.id })}
+              className="w-8 h-8 rounded-xl bg-[#25D366]/15 hover:bg-[#25D366] text-[#25D366] hover:text-white border border-[#25D366]/30 flex items-center justify-center transition-all cursor-pointer shadow-sm group shrink-0"
+              title="Udostępnij na WhatsApp (czat, grupa)"
+            >
+              <WhatsAppIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            </a>
+
+            {/* Facebook */}
+            <a
+              href={socialLinks.facebook}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackEvent('share_clicked', { method: 'facebook_strip', verse_id: verse.id })}
+              className="w-8 h-8 rounded-xl bg-[#1877F2]/15 hover:bg-[#1877F2] text-[#1877F2] hover:text-white border border-[#1877F2]/30 flex items-center justify-center transition-all cursor-pointer shadow-sm group shrink-0"
+              title="Udostępnij na Facebooku"
+            >
+              <FacebookIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            </a>
+
+            {/* Messenger */}
+            <a
+              href={socialLinks.messenger}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackEvent('share_clicked', { method: 'messenger_strip', verse_id: verse.id })}
+              className="w-8 h-8 rounded-xl bg-[#0084FF]/15 hover:bg-[#0084FF] text-[#0084FF] hover:text-white border border-[#0084FF]/30 flex items-center justify-center transition-all cursor-pointer shadow-sm group shrink-0"
+              title="Wyślij przez Messenger"
+            >
+              <MessengerIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            </a>
+
+            {/* Telegram */}
+            <a
+              href={socialLinks.telegram}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackEvent('share_clicked', { method: 'telegram_strip', verse_id: verse.id })}
+              className="w-8 h-8 rounded-xl bg-[#229ED9]/15 hover:bg-[#229ED9] text-[#229ED9] hover:text-white border border-[#229ED9]/30 flex items-center justify-center transition-all cursor-pointer shadow-sm group shrink-0"
+              title="Wyślij na Telegram"
+            >
+              <TelegramIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            </a>
+
+            {/* X / Twitter */}
+            <a
+              href={socialLinks.x}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackEvent('share_clicked', { method: 'x_strip', verse_id: verse.id })}
+              className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white text-white hover:text-black border border-white/20 flex items-center justify-center transition-all cursor-pointer shadow-sm group shrink-0"
+              title="Opublikuj na 𝕏"
+            >
+              <XTwitterIcon className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+            </a>
+
+            {/* Więcej opcji udostępniania */}
+            <button
+              type="button"
+              onClick={handleShareClick}
+              className="py-1 px-2.5 rounded-xl bg-[#dfb872]/15 hover:bg-[#dfb872]/25 border border-[#dfb872]/40 text-[#f3dfb8] hover:text-white text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shrink-0 ml-1"
+              title="Więcej aplikacji (Instagram, Pinterest, LinkedIn, SMS, E-mail, Relacje)"
+            >
+              <span>Więcej</span>
+              <ExternalLink className="w-3 h-3 text-[#dfb872]" />
+            </button>
+          </div>
+        </div>
+
 
         {/* Propozycja: Głębsze Studium w MojaBiblia (Oryginał, Strong, 4 Przekłady) */}
         <motion.a

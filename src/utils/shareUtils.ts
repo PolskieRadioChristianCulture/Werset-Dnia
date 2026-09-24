@@ -76,7 +76,7 @@ export async function shareWithWebShareAPI({
 }
 
 /**
- * Returns direct share links for prominent social messengers
+ * Returns direct share links for prominent social messengers and networks
  */
 export function getSocialShareLinks(verse: BibleVerse, bgId: string) {
   const shareUrl = getVerseShareUrl(verse, bgId);
@@ -84,17 +84,25 @@ export function getSocialShareLinks(verse: BibleVerse, bgId: string) {
   const encodedText = encodeURIComponent(message);
   const encodedUrl = encodeURIComponent(shareUrl);
   const encodedTitle = encodeURIComponent(`Mój Werset Dnia: ${verse.reference}`);
+  const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
   return {
     whatsapp: `https://api.whatsapp.com/send?text=${encodedText}`,
-    messenger: `fb-messenger://share?link=${encodedUrl}`,
+    messenger: isMobile
+      ? `fb-messenger://share?link=${encodedUrl}`
+      : `https://www.facebook.com/dialog/send?link=${encodedUrl}&app_id=291494419107518&redirect_uri=${encodedUrl}`,
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`,
     x: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`„${verse.text.slice(0, 180)}...” — ${verse.reference}`)}&url=${encodedUrl}&hashtags=WersetDnia,Biblia,ChristianCulture`,
     telegram: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
+    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+    pinterest: `https://pinterest.com/pin/create/button/?url=${encodedUrl}&description=${encodedText}`,
+    threads: `https://www.threads.net/intent/post?text=${encodedText}`,
+    reddit: `https://reddit.com/submit?url=${encodedUrl}&title=${encodedTitle}`,
     sms: `sms:?&body=${encodedText}`,
     email: `mailto:?subject=${encodedTitle}&body=${encodedText}`,
   };
 }
+
 
 /**
  * Copy text or link to clipboard safely
